@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../TP5.Shared/TP5.Shared.csproj" Id="945a5813-c1cd-4b1e-a1ad-9510ee0bf720" />
+  <Project Path="../TP5WebApp/TP5WebApp.csproj" Id="00c54895-8bc4-47e3-b977-00b9f969a6ed">
+    <BuildDependency Project="TP5WebApi.csproj" />
+  </Project>
+  <Project Path="TP5WebApi.csproj" />
+</Solution>

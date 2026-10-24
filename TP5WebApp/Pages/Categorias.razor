@@ -1,0 +1,27 @@
+﻿@page "/Categorias"
+
+<h3>Categorias</h3>
+
+@if (items == null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <ul>
+        @foreach (var item in items)
+        {
+            <li>@item.ToString()</li>
+        }
+    </ul>
+}
+
+@code {
+    private List<object>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Aquí se inyecta el Service correspondiente
+        // Ejemplo: items = await ProductoService.GetAllAsync();
+    }
+}

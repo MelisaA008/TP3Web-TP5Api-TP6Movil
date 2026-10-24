@@ -1,0 +1,7 @@
+@TP5WebApi_HostAddress = https://localhost:5001
+
+GET {{TP5WebApi_HostAddress}}/swagger/
+Accept: application/json
+
+###
+ 
