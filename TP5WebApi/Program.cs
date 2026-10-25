@@ -5,6 +5,7 @@ using System.Text;
 using TP5.Shared.Models;
 using TP5WebApi.Repositories;
 using TP5WebApi.Services;
+using TP5WebApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
