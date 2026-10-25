@@ -1,4 +1,4 @@
-﻿using TP5WebApi.Models;
+﻿using TP5.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
 public class VentaService

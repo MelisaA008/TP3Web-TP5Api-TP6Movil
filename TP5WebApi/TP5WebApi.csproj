@@ -20,4 +20,8 @@
 		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\TP5.Shared\TP5.Shared.csproj" />
+	</ItemGroup>
+
 </Project>

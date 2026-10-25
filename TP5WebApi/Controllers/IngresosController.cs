@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TP5WebApi.Models;
+using TP5.Shared.Models;
 
 [ApiController]
 [Route("api/[controller]")]

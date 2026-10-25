@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TP5WebApi.Models;
+using TP5.Shared.Models;
 using TP5WebApi.Services;
 
 [ApiController]

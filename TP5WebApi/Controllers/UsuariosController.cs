@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TP5WebApi.Models;
+using TP5.Shared.Models;
 
 namespace TP5WebApi.Controllers
 {

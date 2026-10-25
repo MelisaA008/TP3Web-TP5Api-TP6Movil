@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TP5WebApi.Models;
+using TP5.Shared.Models;
 using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
