@@ -1,9 +1,4 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-public class SalidaService
+﻿public class SalidaService
 {
     private readonly HttpClient _http;
     public SalidaService(HttpClient http) => _http = http;

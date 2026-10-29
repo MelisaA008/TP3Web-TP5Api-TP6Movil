@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using TP5.Shared.Models;
 using TP5WebApi.Repositories;
 using TP5WebApi.Services;
-using TP5WebApi.Data;
+//using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IVentasRepository, VentasRepository>();
 builder.Services.AddScoped<VentaService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<JwtService>();
 
 // Controladores
 builder.Services.AddControllers();
@@ -29,6 +29,7 @@ builder.Services.AddScoped<ClienteRepository>();
 builder.Services.AddScoped<IngresoProductoRepository>();
 builder.Services.AddScoped<SalidaProductoRepository>();
 builder.Services.AddScoped<UsuarioRepository>();
+builder.Services.AddScoped<IVentasRepository, VentasRepository>();
 
 // Servicios de negocio
 builder.Services.AddScoped<UsuarioService>();
@@ -38,6 +39,9 @@ builder.Services.AddScoped<ProveedorService>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<IngresoService>();
 builder.Services.AddScoped<SalidaService>();
+builder.Services.AddScoped<IVentaService, VentaService>();
+
+
 
 // CORS permisivo
 builder.Services.AddCors(options =>
@@ -53,6 +57,34 @@ builder.Services.AddCors(options =>
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+/*builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer",
+        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme.",
+            Name = "Authorization",
+            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
+
+    c.AddSecurityRequirement(
+        new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+        {
+            {
+                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                    {
+                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+});*/
 
 // Autenticación JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

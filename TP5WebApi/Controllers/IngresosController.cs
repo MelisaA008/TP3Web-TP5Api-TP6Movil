@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.Models;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+//[Authorize]
 public class IngresosController : ControllerBase
 {
     private readonly DataContext _context;
@@ -22,6 +20,13 @@ public class IngresosController : ControllerBase
         _context.IngresosProductos.Add(ingreso);
         await _context.SaveChangesAsync();
 
-        return Ok(ingreso);
+        return Ok(new
+        {
+            ingreso.Id,
+            ingreso.ProductoId,
+            ingreso.ProveedorId,
+            ingreso.Cantidad,
+            ingreso.Fecha
+        });
     }
 }

@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace TP5.Shared.Models
 {
     // -------------------------

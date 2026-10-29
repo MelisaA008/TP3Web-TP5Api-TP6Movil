@@ -1,7 +1,5 @@
-﻿using TP5.Shared.Models;
-
-namespace TP5WebApi.Repositories
-{ 
+﻿namespace TP5WebApi.Repositories
+{
     public interface IVentasRepository
     {
         Task<Venta> RegistrarVentaAsync(Venta venta);

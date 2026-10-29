@@ -1,5 +1,6 @@
-﻿using TP5.Shared.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using TP5.Shared.DTOs;
+using TP5.Shared.Models;
 using TP5WebApi.Data;
 
 namespace TP5WebApi.Services
@@ -7,19 +8,52 @@ namespace TP5WebApi.Services
     public class IngresoService
     {
         private readonly DataContext _context;
-        public IngresoService(DataContext context) => _context = context;
 
-        public async Task<IngresoProducto?> RegistrarIngreso(IngresoProducto ingreso)
+        public IngresoService(DataContext context)
         {
-            var producto = await _context.Productos.FindAsync(ingreso.ProductoId);
-            if (producto == null) return null;
+            _context = context;
+        }
 
-            producto.Stock += ingreso.Cantidad;
-            ingreso.Fecha = DateTime.Now;
+        public async Task<IngresoDto?> RegistrarIngreso(
+            CrearIngresoDto dto)
+        {
+            var producto =
+                await _context.Productos
+                    .FirstOrDefaultAsync(
+                        p => p.Id == dto.ProductoId);
+
+            if (producto == null)
+                return null;
+
+            producto.Stock += dto.Cantidad;
+
+            var ingreso = new IngresoProducto
+            {
+                ProductoId = dto.ProductoId,
+                ProveedorId = dto.ProveedorId,
+                Cantidad = dto.Cantidad,
+                Fecha = DateTime.Now
+            };
 
             _context.IngresosProductos.Add(ingreso);
+
             await _context.SaveChangesAsync();
-            return ingreso;
+
+            var proveedor =
+                await _context.Proveedores
+                    .FirstOrDefaultAsync(
+                        p => p.Id == dto.ProveedorId);
+
+            return new IngresoDto
+            {
+                Id = ingreso.Id,
+                ProductoId = ingreso.ProductoId,
+                ProductoNombre = producto.Nombre ?? "",
+                ProveedorId = ingreso.ProveedorId,
+                ProveedorNombre = proveedor?.Nombre ?? "",
+                Cantidad = ingreso.Cantidad,
+                Fecha = ingreso.Fecha
+            };
         }
     }
 }

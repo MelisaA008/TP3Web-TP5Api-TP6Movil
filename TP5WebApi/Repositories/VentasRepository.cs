@@ -1,6 +1,4 @@
-﻿using TP5.Shared.Models;
-using TP5WebApi.Repositories;
-using Microsoft.EntityFrameworkCore;
+﻿using TP5WebApi.Repositories;
 
 public class VentasRepository : IVentasRepository
 {
@@ -24,6 +22,7 @@ public class VentasRepository : IVentasRepository
             .Include(v => v.Cliente)
             .Include(v => v.Detalles)
             .ThenInclude(d => d.Producto)
+            .AsNoTracking()
             .ToListAsync();
     }
 
@@ -33,6 +32,7 @@ public class VentasRepository : IVentasRepository
             .Include(v => v.Cliente)
             .Include(v => v.Detalles)
             .ThenInclude(d => d.Producto)
+            .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id);
     }
 

@@ -1,9 +1,4 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-public class ClienteService
+﻿public class ClienteService
 {
     private readonly HttpClient _http;
     public ClienteService(HttpClient http) => _http = http;

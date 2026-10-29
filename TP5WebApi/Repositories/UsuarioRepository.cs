@@ -1,9 +1,4 @@
-﻿using TP5.Shared.Models;
-using TP5WebApi.Repositories;
-using TP5WebApi.Data;
-using Microsoft.EntityFrameworkCore;
-
-namespace TP5WebApi.Repositories
+﻿namespace TP5WebApi.Repositories
 {
     public class UsuarioRepository
     {

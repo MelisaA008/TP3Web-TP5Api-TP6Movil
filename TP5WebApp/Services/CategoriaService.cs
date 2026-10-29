@@ -1,9 +1,4 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-public class CategoriaService
+﻿public class CategoriaService
 {
     private readonly HttpClient _http;
     public CategoriaService(HttpClient http) => _http = http;

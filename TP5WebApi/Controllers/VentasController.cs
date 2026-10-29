@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TP5.Shared.Models;
+using TP5.Shared.DTOs;
 using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
@@ -9,63 +8,91 @@ namespace TP5WebApi.Controllers
     [Route("api/[controller]")]
     public class VentasController : ControllerBase
     {
-        private readonly VentaService _ventaService;
+        private readonly IVentaService _ventaService;
 
-        public VentasController(VentaService ventaService)
+        public VentasController(
+            IVentaService ventaService)
         {
             _ventaService = ventaService;
         }
 
         // POST: api/Ventas
         [HttpPost]
-        public async Task<IActionResult> RegistrarVenta([FromBody] Venta venta)
+        public async Task<IActionResult> RegistrarVenta(
+            [FromBody] CrearVentaDto dto)
         {
-            try
+            var resultado =
+                await _ventaService
+                    .RegistrarVentaAsync(dto);
+
+            if (resultado.Error != null)
             {
-                var nuevaVenta = await _ventaService.RegistrarVentaAsync(venta);
-                return Ok(new
-                {
-                    mensaje = "Venta registrada correctamente",
-                    venta = nuevaVenta
-                });
+                return BadRequest(
+                    new
+                    {
+                        error = resultado.Error
+                    });
             }
-            catch (Exception ex)
+
+            return Ok(new
             {
-                return BadRequest(new { error = ex.Message });
-            }
+                mensaje = "Venta registrada correctamente",
+                venta = resultado.Venta
+            });
         }
 
         // GET: api/Ventas
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Venta>>> GetVentas()
+        public async Task<ActionResult<List<VentaListaDto>>>
+            GetVentas()
         {
-            var ventas = await _ventaService.ObtenerVentasAsync();
+            var ventas =
+                await _ventaService.GetVentasAsync();
+
             return Ok(ventas);
         }
 
-        // GET: api/Ventas/{id}
+        // GET: api/Ventas/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Venta>> GetVenta(int id)
+        public async Task<ActionResult<VentaDto>>
+            GetVenta(int id)
         {
-            var venta = await _ventaService.ObtenerVentaPorIdAsync(id);
-            if (venta == null) return NotFound("Venta no encontrada");
+            var venta =
+                await _ventaService
+                    .GetVentaByIdAsync(id);
+
+            if (venta == null)
+            {
+                return NotFound(
+                    "Venta no encontrada");
+            }
+
             return Ok(venta);
         }
 
-        // DELETE: api/Ventas/{id}
+        // DELETE: api/Ventas/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> EliminarVenta(int id)
+        public async Task<IActionResult>
+            EliminarVenta(int id)
         {
-            try
+            var resultado =
+                await _ventaService
+                    .EliminarVentaAsync(id);
+
+            if (!resultado.Exito)
             {
-                var eliminado = await _ventaService.EliminarVentaAsync(id);
-                if (!eliminado) return NotFound("Venta no encontrada");
-                return Ok(new { mensaje = "Venta eliminada correctamente" });
+                return NotFound(
+                    new
+                    {
+                        error = resultado.Error
+                    });
             }
-            catch (Exception ex)
+
+            return Ok(new
             {
-                return BadRequest(new { error = ex.Message });
-            }
+                mensaje =
+                    "Venta eliminada correctamente"
+            });
         }
     }
 }

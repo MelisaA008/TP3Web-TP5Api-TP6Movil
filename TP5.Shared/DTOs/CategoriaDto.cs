@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TP5.Shared.DTOs
+﻿namespace TP5.Shared.DTOs
 {
-    internal class CategoriaDto
+    public class CategoriaDto
     {
+        public int Id { get; set; }
+
+        public string Nombre { get; set; } = string.Empty;
     }
 }

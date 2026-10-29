@@ -1,92 +1,262 @@
-﻿using TP5.Shared.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using TP5.Shared.DTOs;
+using TP5.Shared.Models;
+using TP5WebApi.Data;
+using TP5WebApi.Repositories;
 
-public class VentaService
+namespace TP5WebApi.Services
 {
-    private readonly DataContext _context;
-
-    public VentaService(DataContext context)
+    public class VentaService : IVentaService
     {
-        _context = context;
-    }
+        private readonly IVentasRepository _repository;
+        private readonly DataContext _context;
+        private readonly ILogger<VentaService> _logger;
 
-    public async Task<Venta> RegistrarVentaAsync(Venta venta)
-    {
-        if (venta.Detalles == null || !venta.Detalles.Any())
-            throw new Exception("La venta debe contener al menos un detalle");
-
-        // Validar cliente
-        var cliente = await _context.Clientes.FindAsync(venta.ClienteId);
-        if (cliente == null)
-            throw new Exception("Cliente no encontrado");
-
-        venta.Fecha = DateTime.Now;
-        venta.Total = 0;
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        try
+        public VentaService(
+            IVentasRepository repository,
+            DataContext context,
+            ILogger<VentaService> logger)
         {
-            foreach (var detalle in venta.Detalles)
+            _repository = repository;
+            _context = context;
+            _logger = logger;
+        }
+
+        public async Task<(VentaDto? Venta, string? Error)>
+            RegistrarVentaAsync(
+                CrearVentaDto dto)
+        {
+            await using var transaction =
+                await _context.Database
+                    .BeginTransactionAsync();
+
+            try
             {
-                var producto = await _context.Productos.FindAsync(detalle.ProductoId);
-                if (producto == null)
-                    throw new Exception($"Producto {detalle.ProductoId} no encontrado");
+                var cliente =
+                    await _context.Clientes
+                        .FirstOrDefaultAsync(
+                            c => c.Id == dto.ClienteId);
 
-                if (producto.Stock < detalle.Cantidad)
-                    throw new Exception($"No hay stock suficiente para {producto.Nombre}");
+                if (cliente == null)
+                {
+                    return (
+                        null,
+                        "Cliente no encontrado");
+                }
 
-                // Descontar stock
-                producto.Stock -= detalle.Cantidad;
+                if (dto.Detalles == null ||
+                    !dto.Detalles.Any())
+                {
+                    return (
+                        null,
+                        "La venta debe contener al menos un detalle");
+                }
 
-                // Calcular subtotal
-                detalle.PrecioUnitario = producto.Precio;
-                venta.Total += detalle.Cantidad * detalle.PrecioUnitario;
+                var venta = new Venta
+                {
+                    ClienteId = dto.ClienteId,
+                    Fecha = DateTime.Now,
+                    Total = 0,
+                    Cliente = cliente
+                };
 
-                // Vincular relaciones
-                detalle.Producto = producto;
-                detalle.Venta = venta;
+                foreach (var item in dto.Detalles)
+                {
+                    var producto =
+                        await _context.Productos
+                            .FirstOrDefaultAsync(
+                                p => p.Id == item.ProductoId);
+
+                    if (producto == null)
+                    {
+                        return (
+                            null,
+                            $"Producto {item.ProductoId} no encontrado");
+                    }
+
+                    if (producto.Stock < item.Cantidad)
+                    {
+                        return (
+                            null,
+                            $"Stock insuficiente para {producto.Nombre}");
+                    }
+
+                    producto.Stock -= item.Cantidad;
+
+                    var detalle = new DetalleVenta
+                    {
+                        ProductoId = producto.Id,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = producto.Precio,
+                        Producto = producto,
+                        Venta = venta
+                    };
+
+                    venta.Total +=
+                        detalle.Cantidad *
+                        detalle.PrecioUnitario;
+
+                    venta.Detalles.Add(detalle);
+                }
+
+                await _repository
+                    .RegistrarVentaAsync(venta);
+
+                await transaction.CommitAsync();
+
+                _logger.LogInformation(
+                    "Venta {VentaId} registrada correctamente",
+                    venta.Id);
+
+                var resultado = new VentaDto
+                {
+                    Id = venta.Id,
+                    ClienteId = cliente.Id,
+                    ClienteNombre = cliente.Nombre ?? "",
+                    Fecha = venta.Fecha,
+                    Total = venta.Total,
+                    Detalles = venta.Detalles
+                        .Select(d => new DetalleVentaDto
+                        {
+                            ProductoId = d.ProductoId,
+                            ProductoNombre =
+                                d.Producto?.Nombre ?? "",
+                            Cantidad = d.Cantidad,
+                            PrecioUnitario =
+                                d.PrecioUnitario,                   
+                        })
+                        .ToList()
+                };
+
+                return (resultado, null);
             }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
 
-            _context.Ventas.Add(venta);
-            await _context.SaveChangesAsync();
+                _logger.LogError(
+                    ex,
+                    "Error al registrar venta");
 
-            await transaction.CommitAsync();
-
-            return venta;
+                return (
+                    null,
+                    "Error interno al registrar la venta");
+            }
         }
-        catch
+
+        public async Task<List<VentaListaDto>>
+            GetVentasAsync()
         {
-            await transaction.RollbackAsync();
-            throw;
+            try
+            {
+                var ventas =
+                    await _repository
+                        .ObtenerVentasAsync();
+
+                return ventas
+                .Select(v => new VentaListaDto
+                {
+                    Id = v.Id,
+                    ClienteNombre = v.Cliente?.Nombre ?? "",
+                    Fecha = v.Fecha,
+                    Total = v.Total,
+
+                    // cantidad de renglones
+                    CantidadItems = v.Detalles.Count,
+
+                    // cantidad total de unidades vendidas
+                    CantidadUnidades =
+                    v.Detalles.Sum(d => d.Cantidad)
+                })
+                .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener ventas");
+
+                return [];
+            }
+        }
+
+        public async Task<VentaDto?>
+            GetVentaByIdAsync(int id)
+        {
+            try
+            {
+                var venta =
+                    await _repository
+                        .ObtenerVentaPorIdAsync(id);
+
+                if (venta == null)
+                    return null;
+
+                return new VentaDto
+                {
+                    Id = venta.Id,
+                    ClienteId = venta.ClienteId,
+                    ClienteNombre =
+                        venta.Cliente?.Nombre ?? "",
+                    Fecha = venta.Fecha,
+                    Total = venta.Total,
+                    Detalles = venta.Detalles
+                        .Select(d => new DetalleVentaDto
+                        {
+                            ProductoId =
+                                d.ProductoId,
+                            ProductoNombre =
+                                d.Producto?.Nombre ?? "",
+                            Cantidad =
+                                d.Cantidad,
+                            PrecioUnitario =
+                                d.PrecioUnitario,                            
+                        })
+                        .ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error obteniendo venta {VentaId}",
+                    id);
+
+                return null;
+            }
+        }
+
+        public async Task<(bool Exito, string? Error)>
+            EliminarVentaAsync(int id)
+        {
+            try
+            {
+                var eliminado =
+                    await _repository
+                        .EliminarVentaAsync(id);
+
+                if (!eliminado)
+                {
+                    return (
+                        false,
+                        "Venta no encontrada");
+                }
+
+                return (
+                    true,
+                    null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error eliminando venta {VentaId}",
+                    id);
+
+                return (
+                    false,
+                    "Error interno");
+            }
         }
     }
-    public async Task<List<Venta>> ObtenerVentasAsync()
-    {
-        return await _context.Ventas
-            .Include(v => v.Cliente)
-            .Include(v => v.Detalles)
-            .ThenInclude(d => d.Producto)
-            .ToListAsync();
-    }
-
-    public async Task<Venta?> ObtenerVentaPorIdAsync(int id)
-    {
-        return await _context.Ventas
-            .Include(v => v.Cliente)
-            .Include(v => v.Detalles)
-            .ThenInclude(d => d.Producto)
-            .FirstOrDefaultAsync(v => v.Id == id);
-    }
-
-    public async Task<bool> EliminarVentaAsync(int id)
-    {
-        var venta = await _context.Ventas.FindAsync(id);
-        if (venta == null) return false;
-
-        _context.Ventas.Remove(venta);
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
 }

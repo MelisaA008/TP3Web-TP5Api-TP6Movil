@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace TP5.Shared.Models
 {
     // -------------------------
@@ -17,6 +15,6 @@ namespace TP5.Shared.Models
         public string? Contacto { get; set; }
 
         // Relación 1-N con Productos
-        public ICollection<Producto> ?Productos { get; set; }
+        public ICollection<Producto>? Productos { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace TP5.Shared.Models
 {
@@ -31,7 +31,10 @@ namespace TP5.Shared.Models
         public Proveedor? Proveedor { get; set; }
 
         // Relación con Ingresos y Salidas
-        public ICollection<IngresoProducto> ?IngresosProductos { get; set; }
-        public ICollection<SalidaProducto> ?SalidasProductos { get; set; }
+        [JsonIgnore]
+        public ICollection<IngresoProducto>? IngresosProductos { get; set; }
+
+        [JsonIgnore]
+        public ICollection<SalidaProducto>? SalidasProductos { get; set; }
     }
 }

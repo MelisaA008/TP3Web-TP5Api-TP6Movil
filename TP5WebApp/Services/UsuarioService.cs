@@ -1,9 +1,4 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-public class UsuarioService
+﻿public class UsuarioService
 {
     private readonly HttpClient _http;
     public UsuarioService(HttpClient http) => _http = http;

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TP5.Shared.Models;
+using TP5WebApi.Data;
 
 #nullable disable
 
@@ -37,7 +37,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categorias");
+                    b.ToTable("Categorias", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.Cliente", b =>
@@ -59,7 +59,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes");
+                    b.ToTable("Clientes", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.DetalleVenta", b =>
@@ -88,7 +88,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("VentaId");
 
-                    b.ToTable("DetalleVentas");
+                    b.ToTable("DetalleVentas", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.IngresoProducto", b =>
@@ -117,7 +117,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProveedorId");
 
-                    b.ToTable("IngresosProductos");
+                    b.ToTable("IngresosProductos", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.Producto", b =>
@@ -154,7 +154,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProveedorId");
 
-                    b.ToTable("Productos");
+                    b.ToTable("Productos", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.Proveedor", b =>
@@ -176,7 +176,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Proveedores");
+                    b.ToTable("Proveedores", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.SalidaProducto", b =>
@@ -205,7 +205,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("SalidasProductos");
+                    b.ToTable("SalidasProductos", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.Usuario", b =>
@@ -232,7 +232,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Usuarios");
+                    b.ToTable("Usuarios", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.Venta", b =>
@@ -256,7 +256,7 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("Ventas");
+                    b.ToTable("Ventas", (string)null);
                 });
 
             modelBuilder.Entity("TP5WebApi.Models.DetalleVenta", b =>

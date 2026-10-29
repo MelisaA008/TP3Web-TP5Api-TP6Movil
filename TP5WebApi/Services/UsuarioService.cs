@@ -1,9 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TP5.Shared.Models;
 
 namespace TP5WebApi.Services
 {
@@ -49,7 +47,7 @@ namespace TP5WebApi.Services
         {
             var claims = new[]
             {
-                new Claim(ClaimTypes.Name, usuario.Username),
+                new Claim(ClaimTypes.Name, usuario.Username ?? string.Empty),
                 new Claim(ClaimTypes.Role, usuario.Rol)
             };
 

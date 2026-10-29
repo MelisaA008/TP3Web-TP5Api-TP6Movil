@@ -1,4 +1,4 @@
-﻿namespace TP5.Shared.DTOs   
+﻿namespace TP5.Shared.DTOs
 {
     public class RegisterRequest
     {

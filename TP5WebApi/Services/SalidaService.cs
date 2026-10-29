@@ -1,26 +1,66 @@
-﻿using TP5.Shared.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using TP5.Shared.DTOs;
+using TP5.Shared.Models;
+using TP5WebApi.Data;
 
 namespace TP5WebApi.Services
 {
     public class SalidaService
     {
         private readonly DataContext _context;
-        public SalidaService(DataContext context) => _context = context;
 
-        public async Task<SalidaProducto?> RegistrarSalida(SalidaProducto salida)
+        public SalidaService(DataContext context)
         {
-            var producto = await _context.Productos.FindAsync(salida.ProductoId);
-            if (producto == null) return null;
+            _context = context;
+        }
 
-            if (producto.Stock < salida.Cantidad) return null;
+        public async Task<SalidaDto?> RegistrarSalida(
+            CrearSalidaDto dto)
+        {
+            var producto = await _context.Productos
+                .FirstOrDefaultAsync(
+                    p => p.Id == dto.ProductoId);
 
-            producto.Stock -= salida.Cantidad;
-            salida.Fecha = DateTime.Now;
+            if (producto == null)
+                return null;
+
+            var cliente = await _context.Clientes
+                .FirstOrDefaultAsync(
+                    c => c.Id == dto.ClienteId);
+
+            if (cliente == null)
+                return null;
+
+            if (dto.Cantidad <= 0)
+                return null;
+
+            if (producto.Stock < dto.Cantidad)
+                return null;
+
+            producto.Stock -= dto.Cantidad;
+
+            var salida = new SalidaProducto
+            {
+                ProductoId = dto.ProductoId,
+                ClienteId = dto.ClienteId,
+                Cantidad = dto.Cantidad,
+                Fecha = DateTime.Now
+            };
 
             _context.SalidasProductos.Add(salida);
+
             await _context.SaveChangesAsync();
-            return salida;
+
+            return new SalidaDto
+            {
+                Id = salida.Id,
+                ProductoId = salida.ProductoId,
+                ProductoNombre = producto.Nombre ?? string.Empty,
+                ClienteId = salida.ClienteId,
+                ClienteNombre = cliente.Nombre ?? string.Empty,
+                Cantidad = salida.Cantidad,
+                Fecha = salida.Fecha
+            };
         }
     }
 }

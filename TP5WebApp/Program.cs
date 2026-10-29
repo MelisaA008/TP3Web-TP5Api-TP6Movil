@@ -1,3 +1,4 @@
+using TP5WebApp.Services;
 using TP5WebApp.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.BaseAddress = new Uri("https://localhost:5001/api/");
 });
 
+builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProductoService>();
 builder.Services.AddScoped<CategoriaService>();

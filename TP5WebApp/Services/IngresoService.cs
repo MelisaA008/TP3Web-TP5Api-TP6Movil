@@ -1,9 +1,4 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-public class IngresoService
+﻿public class IngresoService
 {
     private readonly HttpClient _http;
     public IngresoService(HttpClient http) => _http = http;

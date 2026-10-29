@@ -1,7 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TP5.Shared.Models;
-
-namespace TP5WebApi.Data
+﻿namespace TP5WebApi.Data
 {
     public class DataContext : DbContext
     {
@@ -56,6 +53,18 @@ namespace TP5WebApi.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Producto>()
+                .Property(p => p.Precio)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Venta>()
+                .Property(v => v.Total)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<DetalleVenta>()
+                .Property(d => d.PrecioUnitario)
+                .HasPrecision(18, 2);
         }
     }
 }

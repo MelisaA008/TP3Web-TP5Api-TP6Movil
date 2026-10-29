@@ -1,55 +1,123 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TP5WebApi.Data;
-using TP5.Shared.Models;
+using TP5.Shared.DTOs;
+using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    //[Authorize]
     public class CategoriasController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly CategoriaService _service;
 
-        public CategoriasController(DataContext context) => _context = context;
+        public CategoriasController(
+            CategoriaService service)
+        {
+            _service = service;
+        }
 
+        /// <summary>
+        /// Devuelve todas las categorías.
+        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _context.Categorias.ToListAsync());
+        public async Task<IActionResult> GetAll()
+        {
+            var categorias =
+                await _service.GetAll();
 
+            return Ok(categorias);
+        }
+
+        /// <summary>
+        /// Devuelve una categoría por Id.
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(
+            int id)
         {
-            var categoria = await _context.Categorias.FindAsync(id);
-            return categoria == null ? NotFound() : Ok(categoria);
+            var categoria =
+                await _service.GetById(id);
+
+            if (categoria == null)
+            {
+                return NotFound(new
+                {
+                    mensaje =
+                        $"No existe una categoría con ID {id}"
+                });
+            }
+
+            return Ok(categoria);
         }
 
+        /// <summary>
+        /// Crea una nueva categoría.
+        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Create(Categoria categoria)
+        public async Task<IActionResult> Create(
+            [FromBody] CrearCategoriaDto dto)
         {
-            _context.Categorias.Add(categoria);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = categoria.Id }, categoria);
+            var nuevaCategoria =
+                await _service.Create(dto);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = nuevaCategoria.Id },
+                nuevaCategoria);
         }
 
+        /// <summary>
+        /// Actualiza una categoría existente.
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Categoria categoria)
+        public async Task<IActionResult> Update(
+            int id,
+            [FromBody] CrearCategoriaDto dto)
         {
-            if (id != categoria.Id) return BadRequest();
-            _context.Entry(categoria).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            var actualizado =
+                await _service.Update(id, dto);
+
+            if (!actualizado)
+            {
+                return NotFound(new
+                {
+                    mensaje =
+                        $"No existe una categoría con ID {id}"
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje =
+                    "Categoría actualizada correctamente"
+            });
         }
 
+        /// <summary>
+        /// Elimina una categoría.
+        /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(
+            int id)
         {
-            var categoria = await _context.Categorias.FindAsync(id);
-            if (categoria == null) return NotFound();
-            _context.Categorias.Remove(categoria);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            var eliminado =
+                await _service.Delete(id);
+
+            if (!eliminado)
+            {
+                return NotFound(new
+                {
+                    mensaje =
+                        $"No existe una categoría con ID {id}"
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje =
+                    "Categoría eliminada correctamente"
+            });
         }
     }
 }

@@ -1,30 +1,31 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.Models;
+using TP5.Shared.DTOs;
+using TP5WebApi.Services;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+//[Authorize]
 public class SalidasController : ControllerBase
 {
-    private readonly DataContext _context;
-    public SalidasController(DataContext context) => _context = context;
+    private readonly SalidaService _service;
+
+    public SalidasController(
+        SalidaService service)
+    {
+        _service = service;
+    }
 
     [HttpPost]
-    public async Task<IActionResult> RegistrarSalida(SalidaProducto salida)
+    public async Task<IActionResult> RegistrarSalida(
+        [FromBody] CrearSalidaDto dto)
     {
-        var producto = await _context.Productos.FindAsync(salida.ProductoId);
-        if (producto == null) return NotFound("Producto no encontrado");
+        var resultado =
+            await _service.RegistrarSalida(dto);
 
-        if (producto.Stock < salida.Cantidad)
-            return BadRequest("No hay stock suficiente");
+        if (resultado == null)
+            return BadRequest(
+                "No hay stock suficiente o producto inexistente");
 
-        producto.Stock -= salida.Cantidad;
-        salida.Fecha = DateTime.Now;
-
-        _context.SalidasProductos.Add(salida);
-        await _context.SaveChangesAsync();
-
-        return Ok(salida);
+        return Ok(resultado);
     }
 }
