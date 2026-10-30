@@ -1,4 +1,4 @@
-﻿using TP5.Shared.DTOs;
+﻿using TP5Shared.DTOs;
 
 namespace TP5WebApi.Services
 {

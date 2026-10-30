@@ -10,7 +10,7 @@
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11">
 			<PrivateAssets>all</PrivateAssets>
@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\TP5.Shared\TP5.Shared.csproj" />
+	  	  <ProjectReference Include="..\TP5Shared\TP5Shared.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize]
+[Authorize(Roles = "Admin")]
 public class IngresosController : ControllerBase
 {
     private readonly DataContext _context;

@@ -22,7 +22,7 @@ namespace TP5WebApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("TP5WebApi.Models.Categoria", b =>
+            modelBuilder.Entity("TP5Shared.Models.Categoria", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -37,10 +37,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categorias", (string)null);
+                    b.ToTable("Categorias");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Cliente", b =>
+            modelBuilder.Entity("TP5Shared.Models.Cliente", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,10 +59,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes", (string)null);
+                    b.ToTable("Clientes");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.DetalleVenta", b =>
+            modelBuilder.Entity("TP5Shared.Models.DetalleVenta", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -74,6 +74,7 @@ namespace TP5WebApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductoId")
@@ -88,10 +89,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("VentaId");
 
-                    b.ToTable("DetalleVentas", (string)null);
+                    b.ToTable("DetalleVentas");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.IngresoProducto", b =>
+            modelBuilder.Entity("TP5Shared.Models.IngresoProducto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -117,10 +118,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProveedorId");
 
-                    b.ToTable("IngresosProductos", (string)null);
+                    b.ToTable("IngresosProductos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Producto", b =>
+            modelBuilder.Entity("TP5Shared.Models.Producto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -140,6 +141,7 @@ namespace TP5WebApi.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<decimal>("Precio")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProveedorId")
@@ -154,10 +156,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProveedorId");
 
-                    b.ToTable("Productos", (string)null);
+                    b.ToTable("Productos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Proveedor", b =>
+            modelBuilder.Entity("TP5Shared.Models.Proveedor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -176,10 +178,10 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Proveedores", (string)null);
+                    b.ToTable("Proveedores");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.SalidaProducto", b =>
+            modelBuilder.Entity("TP5Shared.Models.SalidaProducto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -205,16 +207,20 @@ namespace TP5WebApi.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("SalidasProductos", (string)null);
+                    b.ToTable("SalidasProductos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Usuario", b =>
+            modelBuilder.Entity("TP5Shared.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -232,10 +238,16 @@ namespace TP5WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Usuarios", (string)null);
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("Usuarios");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Venta", b =>
+            modelBuilder.Entity("Venta", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -250,24 +262,25 @@ namespace TP5WebApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("Ventas", (string)null);
+                    b.ToTable("Ventas");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.DetalleVenta", b =>
+            modelBuilder.Entity("TP5Shared.Models.DetalleVenta", b =>
                 {
-                    b.HasOne("TP5WebApi.Models.Producto", "Producto")
+                    b.HasOne("TP5Shared.Models.Producto", "Producto")
                         .WithMany()
                         .HasForeignKey("ProductoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TP5WebApi.Models.Venta", "Venta")
+                    b.HasOne("Venta", "Venta")
                         .WithMany("Detalles")
                         .HasForeignKey("VentaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -278,15 +291,15 @@ namespace TP5WebApi.Migrations
                     b.Navigation("Venta");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.IngresoProducto", b =>
+            modelBuilder.Entity("TP5Shared.Models.IngresoProducto", b =>
                 {
-                    b.HasOne("TP5WebApi.Models.Producto", "Producto")
+                    b.HasOne("TP5Shared.Models.Producto", "Producto")
                         .WithMany("IngresosProductos")
                         .HasForeignKey("ProductoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TP5WebApi.Models.Proveedor", "Proveedor")
+                    b.HasOne("TP5Shared.Models.Proveedor", "Proveedor")
                         .WithMany()
                         .HasForeignKey("ProveedorId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -297,15 +310,15 @@ namespace TP5WebApi.Migrations
                     b.Navigation("Proveedor");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Producto", b =>
+            modelBuilder.Entity("TP5Shared.Models.Producto", b =>
                 {
-                    b.HasOne("TP5WebApi.Models.Categoria", "Categoria")
+                    b.HasOne("TP5Shared.Models.Categoria", "Categoria")
                         .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TP5WebApi.Models.Proveedor", "Proveedor")
+                    b.HasOne("TP5Shared.Models.Proveedor", "Proveedor")
                         .WithMany("Productos")
                         .HasForeignKey("ProveedorId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -316,15 +329,15 @@ namespace TP5WebApi.Migrations
                     b.Navigation("Proveedor");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.SalidaProducto", b =>
+            modelBuilder.Entity("TP5Shared.Models.SalidaProducto", b =>
                 {
-                    b.HasOne("TP5WebApi.Models.Cliente", "Cliente")
+                    b.HasOne("TP5Shared.Models.Cliente", "Cliente")
                         .WithMany("SalidasProductos")
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TP5WebApi.Models.Producto", "Producto")
+                    b.HasOne("TP5Shared.Models.Producto", "Producto")
                         .WithMany("SalidasProductos")
                         .HasForeignKey("ProductoId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -335,9 +348,9 @@ namespace TP5WebApi.Migrations
                     b.Navigation("Producto");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Venta", b =>
+            modelBuilder.Entity("Venta", b =>
                 {
-                    b.HasOne("TP5WebApi.Models.Cliente", "Cliente")
+                    b.HasOne("TP5Shared.Models.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -346,29 +359,29 @@ namespace TP5WebApi.Migrations
                     b.Navigation("Cliente");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Categoria", b =>
+            modelBuilder.Entity("TP5Shared.Models.Categoria", b =>
                 {
                     b.Navigation("Productos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Cliente", b =>
+            modelBuilder.Entity("TP5Shared.Models.Cliente", b =>
                 {
                     b.Navigation("SalidasProductos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Producto", b =>
+            modelBuilder.Entity("TP5Shared.Models.Producto", b =>
                 {
                     b.Navigation("IngresosProductos");
 
                     b.Navigation("SalidasProductos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Proveedor", b =>
+            modelBuilder.Entity("TP5Shared.Models.Proveedor", b =>
                 {
                     b.Navigation("Productos");
                 });
 
-            modelBuilder.Entity("TP5WebApi.Models.Venta", b =>
+            modelBuilder.Entity("Venta", b =>
                 {
                     b.Navigation("Detalles");
                 });

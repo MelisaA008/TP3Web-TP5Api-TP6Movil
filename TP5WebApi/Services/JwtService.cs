@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using TP5.Shared.Models;
+using TP5Shared.Models;
 
 namespace TP5WebApi.Services
 {

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.DTOs;
+using TP5Shared.DTOs;
 using TP5WebApi.Services;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProductosController : ControllerBase
 {
     private readonly ProductoService _service;
@@ -13,6 +15,7 @@ public class ProductosController : ControllerBase
         _service = service;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<ProductoDto>>> Get(
         int pageNumber = 1,
@@ -26,6 +29,7 @@ public class ProductosController : ControllerBase
         return Ok(productos);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductoDto>> GetById(
         int id)
@@ -39,6 +43,7 @@ public class ProductosController : ControllerBase
         return Ok(producto);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CrearProductoDto dto)
@@ -52,6 +57,7 @@ public class ProductosController : ControllerBase
             nuevo);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(
         int id,
@@ -66,6 +72,7 @@ public class ProductosController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(
         int id)

@@ -1,4 +1,5 @@
-using TP5.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using TP5Shared.DTOs;
 using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
@@ -14,6 +15,7 @@ namespace TP5WebApi.Controllers
             _authService = authService;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(
             RegisterRequest request)
@@ -27,6 +29,7 @@ namespace TP5WebApi.Controllers
             return Ok("Usuario registrado correctamente");
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(
             LoginRequest request)

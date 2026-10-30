@@ -1,12 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.DTOs;
+using TP5Shared.DTOs;
 using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class CategoriasController : ControllerBase
     {
         private readonly CategoriaService _service;
@@ -20,6 +21,7 @@ namespace TP5WebApi.Controllers
         /// <summary>
         /// Devuelve todas las categorías.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -32,6 +34,7 @@ namespace TP5WebApi.Controllers
         /// <summary>
         /// Devuelve una categoría por Id.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(
             int id)
@@ -54,6 +57,7 @@ namespace TP5WebApi.Controllers
         /// <summary>
         /// Crea una nueva categoría.
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(
             [FromBody] CrearCategoriaDto dto)
@@ -70,6 +74,7 @@ namespace TP5WebApi.Controllers
         /// <summary>
         /// Actualiza una categoría existente.
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(
             int id,
@@ -97,6 +102,7 @@ namespace TP5WebApi.Controllers
         /// <summary>
         /// Elimina una categoría.
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(
             int id)

@@ -1,18 +1,28 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+//using Microsoft.OpenApi.Models;
 using System.Text;
+using TP5Shared.Models;
 using TP5WebApi.Repositories;
 using TP5WebApi.Services;
-//using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // -------------------- Servicios --------------------
-
-builder.Services.AddScoped<IVentasRepository, VentasRepository>();
-builder.Services.AddScoped<VentaService>();
+// Servicios de negocio
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CategoriaService>();
+builder.Services.AddScoped<ClienteService>();
+builder.Services.AddScoped<IngresoService>();
+builder.Services.AddScoped<IVentaService, VentaService>();
+builder.Services.AddScoped<VentaService>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<ProductoService>();
+builder.Services.AddScoped<ProveedorService>();
+builder.Services.AddScoped<SalidaService>();
+builder.Services.AddScoped<UsuarioService>();
 
 // Controladores
 builder.Services.AddControllers();
@@ -22,26 +32,14 @@ builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Repositories
-builder.Services.AddScoped<ProductoRepository>();
 builder.Services.AddScoped<CategoriaRepository>();
-builder.Services.AddScoped<ProveedorRepository>();
 builder.Services.AddScoped<ClienteRepository>();
 builder.Services.AddScoped<IngresoProductoRepository>();
+builder.Services.AddScoped<IVentasRepository, VentasRepository>();
+builder.Services.AddScoped<ProductoRepository>();
+builder.Services.AddScoped<ProveedorRepository>();
 builder.Services.AddScoped<SalidaProductoRepository>();
 builder.Services.AddScoped<UsuarioRepository>();
-builder.Services.AddScoped<IVentasRepository, VentasRepository>();
-
-// Servicios de negocio
-builder.Services.AddScoped<UsuarioService>();
-builder.Services.AddScoped<ProductoService>();
-builder.Services.AddScoped<CategoriaService>();
-builder.Services.AddScoped<ProveedorService>();
-builder.Services.AddScoped<ClienteService>();
-builder.Services.AddScoped<IngresoService>();
-builder.Services.AddScoped<SalidaService>();
-builder.Services.AddScoped<IVentaService, VentaService>();
-
-
 
 // CORS permisivo
 builder.Services.AddCors(options =>
@@ -57,35 +55,40 @@ builder.Services.AddCors(options =>
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-/*builder.Services.AddSwaggerGen(c =>
+//Configurar Swagger para ingresar el token Bearer
+
+/*builder.Services.AddSwaggerGen(options =>
 {
-    c.AddSecurityDefinition("Bearer",
-        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer",
+        new OpenApiSecurityScheme
         {
-            Description = "JWT Authorization header using the Bearer scheme.",
             Name = "Authorization",
-            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-            Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-            Scheme = "Bearer"
+            Description = "Bearer Token",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT"
         });
 
-    c.AddSecurityRequirement(
-        new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    options.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
         {
             {
-                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                new OpenApiSecurityScheme
                 {
-                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                    {
-                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
+                    Reference =
+                        new OpenApiReference
+                        {
+                            Type =
+                                ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
                 },
                 Array.Empty<string>()
             }
         });
-});*/
-
+});
+*/
 // Autenticación JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

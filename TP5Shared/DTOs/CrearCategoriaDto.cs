@@ -1,0 +1,8 @@
+﻿
+namespace TP5Shared.DTOs
+{
+    public class CrearCategoriaDto
+    {
+        public string Nombre { get; set; } = string.Empty;
+    }
+}

@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.DTOs;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TP5Shared.DTOs;
 using TP5WebApi.Services;
 
 namespace TP5WebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class VentasController : ControllerBase
     {
         private readonly IVentaService _ventaService;
@@ -71,6 +73,7 @@ namespace TP5WebApi.Controllers
         }
 
         // DELETE: api/Ventas/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult>
             EliminarVenta(int id)

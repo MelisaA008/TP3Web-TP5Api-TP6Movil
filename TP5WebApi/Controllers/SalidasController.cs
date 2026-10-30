@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TP5.Shared.DTOs;
+using TP5Shared.DTOs;
 using TP5WebApi.Services;
 
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize]
+[Authorize(Roles = "Admin")]
 public class SalidasController : ControllerBase
 {
     private readonly SalidaService _service;

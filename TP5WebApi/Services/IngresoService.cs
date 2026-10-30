@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TP5.Shared.DTOs;
-using TP5.Shared.Models;
+using TP5Shared.DTOs;
+using TP5Shared.Models;
 using TP5WebApi.Data;
 
 namespace TP5WebApi.Services
