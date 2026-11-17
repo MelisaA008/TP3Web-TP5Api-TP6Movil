@@ -19,7 +19,7 @@ Permite administrar:
 - Reportes PDF
 - Carga de imágenes
 
-La solución se encuentra dividida en Backend Web API, Biblioteca Compartida y Frontend Blazor WebAssembly Standalone. 
+La solución se encuentra dividida en Backend Web API, Biblioteca Compartida, Frontend Blazor WebAssembly Standalone y Frontend Blazor Hybrid  
 
 ---
 
@@ -33,7 +33,19 @@ SOLUCIÓN
 ├── TP5Shared
 │
 └── TP5WebAppWasm
+│
+└── TP6AndroidHybrid
 ```
+# Tecnologías
+.NET 10 y ASP.NET Core Web API
+Entity Framework Core y SQL Server
+JWT y BCrypt
+Blazor WebAssembly Standalone
+.NET MAUI Blazor Hybrid (Android)
+Serilog
+QuestPDF y MailKit
+Swagger
+Bootstrap
 
 ---
 
@@ -51,7 +63,7 @@ Responsabilidades:
 - Manejo de imágenes
 - Generación de reportes
 
-```text
+```
 TP5WebApi
 │
 ├── Controllers
@@ -138,7 +150,7 @@ Responsabilidades:
 - Reportes
 - Carga de imágenes
 
-```text
+```
 TP5WebAppWasm
 │
 ├── Auth
@@ -181,28 +193,6 @@ TP5WebAppWasm
 ├── Program.cs
 └── _Imports.razor
 ```
-
-La guía recomienda organizar la aplicación en Pages, Services, Shared y Auth para separar responsabilidades. 
-
----
-
-# Tecnologías Utilizadas
-
-- .NET 10
-- ASP.NET Core Web API
-- Blazor WebAssembly
-- SQL Server
-- Entity Framework Core
-- JWT Authentication
-- Bootstrap
-- Swagger
-- LocalStorage
-- HttpClient
-- QuestPDF
-
-
-
----
 
 # Funcionalidades Implementadas
 
@@ -254,4 +244,40 @@ TP5WebAppWasm
         ▼
     SQL Server
 ```
+TP6AndroidHybrid
 
+Frontend móvil en .NET MAUI Blazor Hybrid para Android. Ofrece un catálogo de productos con carrito de compras.
+
+text
+TP6AndroidHybrid
+│
+├── Config
+│   └── ApiConfig.cs               dirección de la API
+│
+├── Auth
+│   ├── TokenStorage.cs            guarda el JWT en SecureStorage
+│   ├── CustomAuthStateProvider.cs
+│   └── JwtInterceptorHandler.cs
+│
+├── Services
+│
+├── Components
+│   ├── Routes.razor
+│   ├── Layout
+│   └── Pages
+│       ├── Login.razor, Register.razor
+│       ├── Catalogo.razor         catálogo, carrito y pago simulado
+│       ├── Ingresos.razor         entradas de mercadería (Admin)
+│       ├── Venta.razor
+│       └── Reportes.razor
+│
+├── Platforms/Android
+└── MauiProgram.cs
+
+Funcionalidad
+Catálogo con búsqueda, filtro por categoría e indicador de stock disponible.
+Carrito de compras con control de cantidad según stock.
+Compra con pago simulado y ticket en PDF.
+Registro de entradas de mercadería para el administrador.
+Reportes PDF que se abren en el visor del dispositivo y envío por correo.
+Control de acceso por rol.
