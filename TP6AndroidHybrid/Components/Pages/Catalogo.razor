@@ -1,0 +1,317 @@
+﻿@page "/catalogo"
+@attribute [Authorize]
+@inject ProductoService ProductoService
+@inject CategoriaService CategoriaService
+@inject ClienteService ClienteService
+@inject VentaService VentaService
+@inject ReporteService ReporteService
+
+<div class="bg-primary text-white p-3 rounded shadow mb-3">
+    <h2 class="mb-1">Catálogo de Productos</h2>
+    <p class="mb-0">Seleccione productos y agregue al carrito.</p>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-12 col-md-6">
+        <input class="form-control" placeholder="Buscar producto..."
+               @bind="buscar" @bind:after="CargarProductos" />
+    </div>
+    <div class="col-12 col-md-6">
+        <select class="form-select" @bind="categoriaSeleccionada" @bind:after="CargarProductos">
+            <option value="0">Todas las categorías</option>
+            @foreach (var cat in categorias)
+            {
+                <option value="@cat.Id">@cat.Nombre</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (!productos.Any())
+{
+    <div class="alert alert-warning">No se encontraron productos.</div>
+}
+
+<div class="row">
+    @foreach (var producto in productos)
+    {
+        <div class="col-12 col-sm-6 col-md-4 mb-4">
+            <div class="card producto-card h-100">
+                <div class="card-body">
+                    @if (!string.IsNullOrWhiteSpace(producto.ImagenPath))
+                    {
+                        <img src="@($"{ApiConfig.BaseUrl}{producto.ImagenPath}")"
+                             class="producto-imagen rounded mb-3" />
+                    }
+                    else
+                    {
+                        <div class="producto-imagen rounded d-flex align-items-center justify-content-center mb-3">
+                            <small class="text-muted">Sin imagen</small>
+                        </div>
+                    }
+
+                    <span class="producto-categoria">@producto.CategoriaNombre</span>
+                    <h5 class="mt-2">@producto.Nombre</h5>
+                    <p class="text-muted mb-2">Proveedor: @producto.ProveedorNombre</p>
+
+                    @if (producto.Stock > 0)
+                    {
+                        <span class="badge badge-stock-ok">Stock disponible</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-stock-no">Sin stock</span>
+                    }
+
+                    <h3 class="producto-precio mt-2">$ @producto.Precio</h3>
+                    <small class="text-muted">Stock: @producto.Stock</small>
+                </div>
+
+                <div class="card-footer bg-white border-0">
+                    @if (producto.Stock > 0)
+                    {
+                        <input type="number" min="1" max="@producto.Stock" class="form-control mb-2"
+                               value="@cantidades[producto.Id]"
+                               @onchange="@(e => cantidades[producto.Id] = int.TryParse(e.Value?.ToString(), out var v) && v > 0 ? v : 1)" />
+
+                        <button class="btn-agregar" @onclick="() => AgregarAlCarrito(producto)">
+                            Agregar al carrito
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card shadow mt-2 mb-4">
+    <div class="card-header">Carrito</div>
+    <div class="card-body">
+        @if (!carrito.Any())
+        {
+            <p class="mb-0">No hay productos cargados.</p>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Producto</th><th>Cant.</th><th>Subtotal</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in carrito)
+                    {
+                        <tr>
+                            <td>@item.ProductoNombre</td>
+                            <td>@item.Cantidad</td>
+                            <td>$ @(item.Precio * item.Cantidad)</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => EliminarDelCarrito(item)">
+                                    Quitar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="alert alert-success">
+                Total: <strong>$ @TotalCarrito</strong>
+            </div>
+
+            <label class="form-label">Cliente</label>
+            <select class="form-select mb-3" @bind="clienteSeleccionadoId">
+                <option value="0">-- Seleccione un cliente --</option>
+                @foreach (var c in clientes)
+                {
+                    <option value="@c.Id">@c.Nombre</option>
+                }
+            </select>
+
+            <label class="form-label">Medio de pago</label>
+            <select class="form-select mb-3" @bind="medioPago">
+                <option>Efectivo</option>
+                <option>Tarjeta de débito</option>
+                <option>Tarjeta de crédito</option>
+                <option>Transferencia</option>
+            </select>
+
+            <button class="btn btn-primary btn-lg w-100" disabled="@procesando"
+                    @onclick="FinalizarCompra">
+                @(procesando ? "Procesando pago..." : "Pagar y finalizar")
+            </button>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(mensaje))
+        {
+            <div class="alert alert-info mt-3 mb-0">@mensaje</div>
+        }
+    </div>
+</div>
+
+@code
+{
+    private List<ProductoDto> productos = new();
+    private List<CategoriaDto> categorias = new();
+    private List<ClienteDto> clientes = new();
+    private List<CarritoItem> carrito = new();
+    private Dictionary<int, int> cantidades = new();
+
+    private string buscar = string.Empty;
+    private int categoriaSeleccionada = 0;
+    private int clienteSeleccionadoId = 0;
+    private string medioPago = "Efectivo";
+    private bool procesando;
+    private string? mensaje;
+
+    private decimal TotalCarrito => carrito.Sum(x => x.Precio * x.Cantidad);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categorias = await CategoriaService.GetCategorias() ?? new();
+            clientes = await ClienteService.GetClientes() ?? new();
+            await CargarProductos();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar el catálogo: {ex.Message}";
+        }
+    }
+
+    private async Task CargarProductos()
+    {
+        try
+        {
+            var respuesta = await ProductoService.GetProductosPaginados(
+                new ParametrosPaginacionDto
+                {
+                    Buscar = buscar,
+                    TamanoPagina = 50,
+                    CategoriaId = categoriaSeleccionada == 0 ? null : categoriaSeleccionada
+                });
+
+            productos = respuesta?.Datos.ToList() ?? new();
+
+            foreach (var producto in productos)
+            {
+                if (!cantidades.ContainsKey(producto.Id))
+                    cantidades.Add(producto.Id, 1);
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar productos: {ex.Message}";
+        }
+    }
+
+    private void AgregarAlCarrito(ProductoDto producto)
+    {
+        var cantidad = cantidades[producto.Id];
+        var existente = carrito.FirstOrDefault(c => c.ProductoId == producto.Id);
+        var yaEnCarrito = existente?.Cantidad ?? 0;
+
+        if (yaEnCarrito + cantidad > producto.Stock)
+        {
+            mensaje = $"Solo hay {producto.Stock} unidades de {producto.Nombre}.";
+            return;
+        }
+
+        if (existente != null)
+        {
+            existente.Cantidad += cantidad;
+        }
+        else
+        {
+            carrito.Add(new CarritoItem
+            {
+                ProductoId = producto.Id,
+                ProductoNombre = producto.Nombre,
+                Cantidad = cantidad,
+                Precio = producto.Precio
+            });
+        }
+
+        mensaje = $"{producto.Nombre} agregado al carrito.";
+    }
+
+    private void EliminarDelCarrito(CarritoItem item)
+    {
+        carrito.Remove(item);
+        mensaje = null;
+    }
+
+    private async Task FinalizarCompra()
+    {
+        if (!carrito.Any())
+            return;
+
+        if (clienteSeleccionadoId == 0)
+        {
+            mensaje = "Seleccioná un cliente antes de pagar.";
+            return;
+        }
+
+        procesando = true;
+        mensaje = null;
+        int? ventaId = null;
+
+        try
+        {
+            var venta = new CrearVentaDto
+            {
+                ClienteId = clienteSeleccionadoId,
+                Detalles = carrito.Select(c => new CrearVentaDetalleDto
+                {
+                    ProductoId = c.ProductoId,
+                    Cantidad = c.Cantidad
+                }).ToList()
+            };
+
+            // Pago simulado: no se cobra nada, solo se registra la venta.
+            await Task.Delay(1000);
+            ventaId = await VentaService.RegistrarVentaConId(venta);
+
+            if (ventaId.HasValue)
+            {
+                mensaje = $"Pago con {medioPago} aprobado (simulado). Compra N° {ventaId} registrada.";
+                carrito.Clear();
+                await CargarProductos();
+            }
+            else
+            {
+                mensaje = "No fue posible registrar la compra (revisá el stock).";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al registrar la compra: {ex.Message}";
+        }
+        finally
+        {
+            procesando = false;
+        }
+
+        // El ticket va aparte: si falla al abrirse, la compra ya quedó registrada.
+        if (ventaId.HasValue)
+        {
+            try
+            {
+                await ReporteService.DescargarTicket(ventaId.Value);
+            }
+            catch (Exception ex)
+            {
+                mensaje += $" No se pudo abrir el ticket: {ex.Message}";
+            }
+        }
+    }
+
+    private class CarritoItem
+    {
+        public int ProductoId { get; set; }
+        public string ProductoNombre { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal Precio { get; set; }
+    }
+}

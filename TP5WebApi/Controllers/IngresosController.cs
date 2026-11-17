@@ -1,32 +1,27 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TP5Shared.DTOs;
+using TP5WebApi.Services;
+
+namespace TP5WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
 public class IngresosController : ControllerBase
 {
-    private readonly DataContext _context;
-    public IngresosController(DataContext context) => _context = context;
+    private readonly IngresoService _service;
+    public IngresosController(IngresoService service) => _service = service;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll() => Ok(await _service.GetAll());
 
     [HttpPost]
-    public async Task<IActionResult> RegistrarIngreso(IngresoProducto ingreso)
+    public async Task<IActionResult> RegistrarIngreso([FromBody] CrearIngresoDto dto)
     {
-        var producto = await _context.Productos.FindAsync(ingreso.ProductoId);
-        if (producto == null) return NotFound("Producto no encontrado");
-
-        producto.Stock += ingreso.Cantidad;
-        ingreso.Fecha = DateTime.Now;
-
-        _context.IngresosProductos.Add(ingreso);
-        await _context.SaveChangesAsync();
-
-        return Ok(new
-        {
-            ingreso.Id,
-            ingreso.ProductoId,
-            ingreso.ProveedorId,
-            ingreso.Cantidad,
-            ingreso.Fecha
-        });
+        var resultado = await _service.RegistrarIngreso(dto);
+        return resultado == null
+            ? BadRequest("Producto/proveedor inexistente o cantidad inválida")
+            : Ok(resultado);
     }
 }

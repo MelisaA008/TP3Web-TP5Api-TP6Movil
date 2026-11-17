@@ -1,0 +1,92 @@
+﻿@page "/ingresos"
+
+@using System.Net.Http.Json
+@using TP5Shared.DTOs
+
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Ingresos de Mercadería</h3>
+
+@if (error != null)
+{
+    <div class="alert alert-danger">
+        @error
+    </div>
+}
+
+@if (ingresos == null)
+{
+    <p>Cargando ingresos...</p>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+
+            <tr>
+                <th>Id</th>
+                <th>Producto</th>
+                <th>Proveedor</th>
+                <th>Cantidad</th>
+                <th>Fecha</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var ingreso in ingresos)
+            {
+                <tr>
+
+                    <td>@ingreso.Id</td>
+
+                    <td>@ingreso.ProductoNombre</td>
+
+                    <td>@ingreso.ProveedorNombre</td>
+
+                    <td>@ingreso.Cantidad</td>
+
+                    <td>
+                        @ingreso.Fecha.ToString("dd/MM/yyyy")
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    private List<IngresoDto>? ingresos;
+
+    private string? error;
+
+    [Inject]
+    private HttpClient Http { get; set; }
+        = default!;
+
+    protected override async Task
+        OnInitializedAsync()
+    {
+        try
+        {
+            ingresos =
+                await Http.GetFromJsonAsync
+                <
+                    List<IngresoDto>
+                >
+                (
+                    "api/Ingresos"
+                );
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+}

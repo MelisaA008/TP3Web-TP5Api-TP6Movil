@@ -1,0 +1,11 @@
+﻿<ContentPage xmlns:local="clr-namespace:TP6AndroidHybrid"
+             xmlns:components="clr-namespace:TP6AndroidHybrid.Components"
+             x:Class="TP6AndroidHybrid.MainPage">
+
+    <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
+        <BlazorWebView.RootComponents>
+            <RootComponent Selector="#app" ComponentType="{x:Type components:Routes}" />
+        </BlazorWebView.RootComponents>
+    </BlazorWebView>
+
+</ContentPage>

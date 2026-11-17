@@ -1,83 +1,239 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TP5Shared.DTOs;
 using TP5Shared.Models;
 
-namespace TP5WebApi.Services
+using TP5WebApi.Repositories;
+
+namespace TP5WebApi.Services;
+
+/// <summary>
+/// Lógica de negocio para productos.
+/// </summary>
+public class ProductoService
 {
-    /// <summary>
-    /// Servicio encargado de la lógica de negocio de Productos.
-    /// </summary>
-    public class ProductoService
+    private readonly ProductoRepository _repository;
+    private readonly ILogger<ProductoService> _logger;
+    
+    //constructor
+    public ProductoService(
+           ProductoRepository repository,
+           ILogger<ProductoService> logger)
     {
-        private readonly DataContext _context;
+        _repository = repository;
+        _logger = logger;
+    }
+    
+    public async Task<Producto?>
+    GetEntidad(int id)
+    {
+        return await _repository
+            .GetByIdAsync(id);
+    }
 
-        /// <summary>
-        /// Constructor con inyección de dependencias.
-        /// </summary>
-        public ProductoService(DataContext context)
-        {
-            _context = context;
-        }
+    public async Task
+    GuardarEntidad(
+        Producto producto)
+    {
+        await _repository
+            .UpdateAsync(producto);
+    }
 
-        /// <summary>
-        /// Obtiene una lista paginada de productos.
-        /// </summary>
-        public async Task<List<ProductoDto>> GetAll(
-            int pageNumber = 1,
-            int pageSize = 10)
+    /// <summary>
+    /// Obtiene productos aplicando filtros,
+    /// ordenamiento y paginación.
+    /// </summary>
+    public async Task<
+    RespuestaPaginadaDto<ProductoDto>>
+    GetAll(
+        ParametrosPaginacionDto parametros)
+    {
+        try
         {
-            return await _context.Productos
-                .Include(p => p.Categoria)
-                .Include(p => p.Proveedor)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new ProductoDto
+            _logger.LogInformation(
+                "Consulta productos. Página={Pagina} Tamaño={Tamano} Buscar={Buscar} Categoria={Categoria}",
+                parametros.Pagina,
+                parametros.TamanoPagina,
+                parametros.Buscar,
+                parametros.CategoriaId);
+
+            // Consulta base.
+            var query = _repository.Query();
+
+            // Buscar por nombre.
+            if (!string.IsNullOrWhiteSpace(
+                parametros.Buscar))
+            {
+                var termino =
+                    parametros.Buscar
+                        .Trim()
+                        .ToLower();
+
+                query = query.Where(
+                    p =>
+                        p.Nombre
+                            .ToLower()
+                            .Contains(
+                                termino));
+            }
+
+            // Filtrar por categoría.
+            if (
+                parametros.CategoriaId.HasValue &&
+                parametros.CategoriaId.Value > 0)
+            {
+                query = query.Where(
+                    p =>
+                        p.CategoriaId ==
+                        parametros.CategoriaId);
+            }
+
+            // Ordenar resultados.
+            query =
+                parametros.OrdenarPor?
+                .ToLower()
+                switch
                 {
-                    Id = p.Id,
-                    Nombre = p.Nombre ?? string.Empty,
-                    Stock = p.Stock,
-                    Precio = p.Precio,
+                    "nombre" =>
+                        query.OrderBy(
+                            p => p.Nombre),
 
-                    CategoriaId = p.CategoriaId,
-                    CategoriaNombre = p.Categoria!.Nombre??string.Empty,
+                    "nombre_desc" =>
+                        query.OrderByDescending(
+                            p => p.Nombre),
 
-                    ProveedorId = p.ProveedorId,
-                    ProveedorNombre = p.Proveedor!.Nombre??string.Empty
-                })
-                .ToListAsync();
+                    "precio_asc" =>
+                        query.OrderBy(
+                            p => p.Precio),
+
+                    "precio_desc" =>
+                        query.OrderByDescending(
+                            p => p.Precio),
+
+                    _ =>
+                        query.OrderBy(
+                            p => p.Id)
+                };
+
+            // Cantidad total encontrada.
+            var totalRegistros =
+                await query.CountAsync();
+
+            // Aplicar paginación.
+            var productos =
+                await query
+                    .Skip(
+                        (parametros.Pagina - 1)
+                        *
+                        parametros.TamanoPagina)
+                    .Take(
+                        parametros.TamanoPagina)
+                    .Select(
+                        p =>
+                            new ProductoDto
+                            {
+                                Id = p.Id,
+                                Nombre = p.Nombre,
+                                Stock = p.Stock,
+                                Precio = p.Precio,
+                                ImagenPath = p.ImagenPath,
+                                
+                                CategoriaId = p.CategoriaId,
+
+                                CategoriaNombre = p.Categoria != null? p.Categoria.Nombre: string.Empty,
+
+                                ProveedorId = p.ProveedorId,
+
+                                ProveedorNombre = p.Proveedor != null? p.Proveedor.Nombre ?? string.Empty: string.Empty}).ToListAsync();
+                                _logger.LogInformation("Consulta completada. Total registros={Total}", totalRegistros);
+
+            return new RespuestaPaginadaDto<ProductoDto>
+            (
+                productos,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
         }
 
-        /// <summary>
-        /// Obtiene un producto por Id.
-        /// </summary>
-        public async Task<ProductoDto?> GetById(int id)
+        catch (Exception ex)
         {
-            return await _context.Productos
-                .Include(p => p.Categoria)
-                .Include(p => p.Proveedor)
-                .Where(p => p.Id == id)
-                .Select(p => new ProductoDto
-                {
-                    Id = p.Id,
-                    Nombre = p.Nombre ?? string.Empty,
-                    Stock = p.Stock,
-                    Precio = p.Precio,
+            _logger.LogError(
+                ex,
+                "Error obteniendo listado de productos");
 
-                    CategoriaId = p.CategoriaId,
-                    CategoriaNombre = p.Categoria!.Nombre,
-
-                    ProveedorId = p.ProveedorId,
-                    ProveedorNombre = p.Proveedor!.Nombre??string.Empty
-                })
-                .FirstOrDefaultAsync();
+            throw;
         }
+    }
 
-        /// <summary>
-        /// Crea un nuevo producto.
-        /// </summary>
-        public async Task<Producto> Create(
-            CrearProductoDto dto)
+    /// <summary>
+    /// Obtiene un producto por Id.
+    /// </summary>
+    public async Task<ProductoDto?> GetById(int id)
+    {
+        try
         {
+            _logger.LogInformation(
+                "Consulta producto Id={Id}",
+                id);
+
+            var producto =
+                await _repository.GetByIdAsync(id);
+
+            if (producto == null)
+            {
+                _logger.LogWarning(
+                    "Producto no encontrado Id={Id}",
+                    id);
+
+                return null;
+            }
+
+            return new ProductoDto
+            {
+                Id = producto.Id,
+                Nombre = producto.Nombre,
+                Stock = producto.Stock,
+                Precio = producto.Precio,
+                ImagenPath = producto.ImagenPath,
+                CategoriaId =
+                producto.CategoriaId,
+
+                CategoriaNombre =
+                producto.Categoria?.Nombre
+                ?? string.Empty,
+
+                ProveedorId =
+                producto.ProveedorId,
+
+                ProveedorNombre =
+                producto.Proveedor?.Nombre
+                ?? string.Empty
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error obteniendo producto {Id}",
+                id);
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Registra un producto nuevo.
+    /// </summary>
+    public async Task<ProductoDto> Create(
+    CrearProductoDto dto)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Creando producto {Nombre}",
+                dto.Nombre);
+
             var producto = new Producto
             {
                 Nombre = dto.Nombre,
@@ -87,56 +243,126 @@ namespace TP5WebApi.Services
                 ProveedorId = dto.ProveedorId
             };
 
-            _context.Productos.Add(producto);
+            await _repository.AddAsync(producto);
 
-            await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "Producto creado Id={Id} Nombre={Nombre}",
+                producto.Id,
+                producto.Nombre);
 
-            return producto;
+            return await GetById(producto.Id)
+                ?? throw new Exception(
+                    "Error al recuperar producto creado");
         }
-
-        /// <summary>
-        /// Actualiza un producto existente.
-        /// </summary>
-        public async Task<bool> Update(
-            int id,
-            CrearProductoDto dto)
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Error creando producto {Nombre}",
+                dto.Nombre);
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza un producto existente.
+    /// </summary>
+    public async Task<bool> Update(
+     int id,
+     CrearProductoDto dto)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Actualizando producto Id={Id}",
+                id);
+
             var producto =
-                await _context.Productos.FindAsync(id);
+                await _repository.GetByIdAsync(id);
 
             if (producto == null)
+            {
+                _logger.LogWarning(
+                    "Producto inexistente Id={Id}",
+                    id);
+
                 return false;
+            }
 
-            producto.Nombre = dto.Nombre;
-            producto.Stock = dto.Stock;
-            producto.Precio = dto.Precio;
-            producto.CategoriaId = dto.CategoriaId;
-            producto.ProveedorId = dto.ProveedorId;
+            producto.Nombre =
+             dto.Nombre;
 
-            _context.Entry(producto).State =
-                EntityState.Modified;
+            producto.Stock =
+                dto.Stock;
 
-            await _context.SaveChangesAsync();
+            producto.Precio =
+                dto.Precio;
+
+            producto.CategoriaId =
+                dto.CategoriaId;
+
+            producto.ProveedorId =
+                dto.ProveedorId;
+
+            await _repository.UpdateAsync(producto);
+
+            _logger.LogInformation(
+                "Producto actualizado Id={Id}",
+                id);
 
             return true;
         }
-
-        /// <summary>
-        /// Elimina un producto por Id.
-        /// </summary>
-        public async Task<bool> Delete(int id)
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Error actualizando producto {Id}",
+                id);
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Elimina un producto.
+    /// </summary>
+    public async Task<bool> Delete(int id)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Eliminando producto Id={Id}",
+                id);
+
             var producto =
-                await _context.Productos.FindAsync(id);
+                await _repository.GetByIdAsync(id);
 
             if (producto == null)
+            {
+                _logger.LogWarning(
+                    "Producto inexistente Id={Id}",
+                    id);
+
                 return false;
+            }
 
-            _context.Productos.Remove(producto);
+            await _repository.DeleteAsync(id);
 
-            await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "Producto eliminado Id={Id}",
+                id);
 
             return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error eliminando producto {Id}",
+                id);
+
+            throw;
         }
     }
 }

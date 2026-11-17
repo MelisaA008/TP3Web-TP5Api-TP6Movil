@@ -1,0 +1,141 @@
+﻿@page "/proveedores"
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+@attribute [Authorize(Roles = "Admin")]
+@inject ProveedorService ProveedorService
+
+<h3>Proveedores</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info">@mensaje</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">@(proveedorEditandoId.HasValue ? "Editar proveedor" : "Nuevo proveedor")</div>
+    <div class="card-body">
+        <EditForm Model="proveedorForm" OnValidSubmit="GuardarProveedor">
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Nombre</label>
+                    <InputText class="form-control" @bind-Value="proveedorForm.Nombre" />
+                </div>
+                <div class="col-md-6">
+                    <label>Contacto</label>
+                    <InputText class="form-control" @bind-Value="proveedorForm.Contacto" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success mt-3 me-2">Guardar</button>
+            @if (proveedorEditandoId.HasValue)
+            {
+                <button type="button" class="btn btn-secondary mt-3" @onclick="CancelarEdicion">Cancelar</button>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@if (proveedores == null)
+{
+    <p>Cargando proveedores...</p>
+}
+else if (!proveedores.Any())
+{
+    <div class="alert alert-warning">No hay proveedores registrados.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr><th>Id</th><th>Nombre</th><th>Contacto</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var proveedor in proveedores)
+            {
+                <tr>
+                    <td>@proveedor.Id</td>
+                    <td>@proveedor.Nombre</td>
+                    <td>@proveedor.Contacto</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => Editar(proveedor)">Editar</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(proveedor.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+    private List<ProveedorDto>? proveedores;
+    private CrearProveedorDto proveedorForm = new();
+    private int? proveedorEditandoId;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync() => await CargarProveedores();
+
+    private async Task CargarProveedores()
+    {
+        try
+        {
+            proveedores = await ProveedorService.GetProveedores();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar proveedores: {ex.Message}";
+        }
+    }
+
+    private async Task GuardarProveedor()
+    {
+        try
+        {
+            bool resultado;
+
+            if (proveedorEditandoId.HasValue)
+            {
+                resultado = await ProveedorService.ActualizarProveedor(proveedorEditandoId.Value, proveedorForm);
+                mensaje = resultado ? "Proveedor actualizado." : "No se pudo actualizar.";
+            }
+            else
+            {
+                resultado = await ProveedorService.CrearProveedor(proveedorForm);
+                mensaje = resultado ? "Proveedor creado." : "No se pudo crear.";
+            }
+
+            proveedorForm = new CrearProveedorDto();
+            proveedorEditandoId = null;
+            await CargarProveedores();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private void Editar(ProveedorDto proveedor)
+    {
+        proveedorEditandoId = proveedor.Id;
+        proveedorForm = new CrearProveedorDto { Nombre = proveedor.Nombre, Contacto = proveedor.Contacto };
+    }
+
+    private void CancelarEdicion()
+    {
+        proveedorEditandoId = null;
+        proveedorForm = new CrearProveedorDto();
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await ProveedorService.EliminarProveedor(id);
+            mensaje = resultado ? "Proveedor eliminado." : "No se pudo eliminar.";
+            await CargarProveedores();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al eliminar: {ex.Message}";
+        }
+    }
+}

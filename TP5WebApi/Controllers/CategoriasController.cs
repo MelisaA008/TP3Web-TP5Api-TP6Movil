@@ -23,13 +23,8 @@ namespace TP5WebApi.Controllers
         /// </summary>
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var categorias =
-                await _service.GetAll();
-
-            return Ok(categorias);
-        }
+        public async Task<ActionResult<RespuestaPaginadaDto<CategoriaDto>>> Get([FromQuery] ParametrosPaginacionDto parametros)
+        => Ok(await _service.GetAllPaginado(parametros));
 
         /// <summary>
         /// Devuelve una categoría por Id.

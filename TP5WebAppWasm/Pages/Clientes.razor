@@ -1,0 +1,143 @@
+﻿@page "/clientes"
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+@attribute [Authorize(Roles = "Admin")]
+@inject ClienteService ClienteService
+
+<h3>Clientes</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info">@mensaje</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">@(clienteEditandoId.HasValue ? "Editar cliente" : "Nuevo cliente")</div>
+    <div class="card-body">
+        <EditForm Model="clienteForm" OnValidSubmit="GuardarCliente">
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Nombre</label>
+                    <InputText class="form-control" @bind-Value="clienteForm.Nombre" />
+                </div>
+                <div class="col-md-6">
+                    <label>Contacto</label>
+                    <InputText class="form-control" @bind-Value="clienteForm.Contacto" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success mt-3 me-2">Guardar</button>
+            @if (clienteEditandoId.HasValue)
+            {
+                <button type="button" class="btn btn-secondary mt-3" @onclick="CancelarEdicion">Cancelar</button>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@if (clientes == null)
+{
+    <p>Cargando clientes...</p>
+}
+else if (!clientes.Any())
+{
+    <div class="alert alert-warning">No hay clientes registrados.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr><th>Id</th><th>Nombre</th><th>Contacto</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var cliente in clientes)
+            {
+                <tr>
+                    <td>@cliente.Id</td>
+                    <td>@cliente.Nombre</td>
+                    <td>@cliente.Contacto</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => Editar(cliente)">Editar</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(cliente.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+    private List<ClienteDto>? clientes;
+    private CrearClienteDto clienteForm = new();
+    private int? clienteEditandoId;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync() => await CargarClientes();
+
+    private async Task CargarClientes()
+    {
+        try
+        {
+            clientes = await ClienteService.GetClientes();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar clientes: {ex.Message}";
+        }
+    }
+
+    private async Task GuardarCliente()
+    {
+        try
+        {
+            bool resultado;
+
+            if (clienteEditandoId.HasValue)
+            {
+                resultado = await ClienteService.ActualizarCliente(clienteEditandoId.Value, clienteForm);
+                mensaje = resultado ? "Cliente actualizado." : "No se pudo actualizar.";
+            }
+            else
+            {
+                resultado = await ClienteService.CrearCliente(clienteForm);
+                mensaje = resultado ? "Cliente creado." : "No se pudo crear.";
+            }
+
+            clienteForm = new CrearClienteDto();
+            clienteEditandoId = null;
+            await CargarClientes();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private void Editar(ClienteDto cliente)
+    {
+        clienteEditandoId = cliente.Id;
+        clienteForm = new CrearClienteDto { Nombre = cliente.Nombre, Contacto = cliente.Contacto };
+    }
+
+    private void CancelarEdicion()
+    {
+        clienteEditandoId = null;
+        clienteForm = new CrearClienteDto();
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await ClienteService.EliminarCliente(id);
+            mensaje = resultado ? "Cliente eliminado." : "No se pudo eliminar.";
+            await CargarClientes();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al eliminar: {ex.Message}";
+        }
+    }
+
+
+}

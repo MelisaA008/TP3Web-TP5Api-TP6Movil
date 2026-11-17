@@ -20,8 +20,8 @@ namespace TP5WebApi.Services
                 .Select(p => new ProveedorDto
                 {
                     Id = p.Id,
-                    Nombre = p.Nombre,
-                    Contacto = p.Contacto
+                    Nombre = p.Nombre ?? string.Empty,  
+                    Contacto = p.Contacto ?? string.Empty
                 })
                 .ToListAsync();
         }
@@ -33,8 +33,8 @@ namespace TP5WebApi.Services
                 .Select(p => new ProveedorDto
                 {
                     Id = p.Id,
-                    Nombre = p.Nombre,
-                    Contacto = p.Contacto
+                    Nombre = p.Nombre ?? string.Empty,
+                    Contacto = p.Contacto ?? string.Empty
                 })
                 .FirstOrDefaultAsync();
         }
@@ -86,6 +86,34 @@ namespace TP5WebApi.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<RespuestaPaginadaDto<ProveedorDto>> GetAllPaginado(ParametrosPaginacionDto p)
+        {
+            var query = _context.Proveedores.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(p.Buscar))
+            {
+                var termino = p.Buscar.Trim().ToLower();
+                query = query.Where(c => (c.Nombre ?? "").ToLower().Contains(termino));
+            }
+
+            query = p.OrdenarPor?.ToLower() switch
+            {
+                "nombre_desc" => query.OrderByDescending(c => c.Nombre),
+                "nombre" => query.OrderBy(c => c.Nombre),
+                _ => query.OrderBy(c => c.Id)
+            };
+
+            var total = await query.CountAsync();
+
+            var datos = await query
+                .Skip((p.Pagina - 1) * p.TamanoPagina)
+                .Take(p.TamanoPagina)
+                .Select(c => new ProveedorDto { Id = c.Id, Nombre = c.Nombre ?? string.Empty, Contacto = c.Contacto ?? string.Empty })
+                .ToListAsync();
+
+            return new RespuestaPaginadaDto<ProveedorDto>(datos, total, p.Pagina, p.TamanoPagina);
         }
     }
 }

@@ -1,19 +1,32 @@
 ﻿namespace TP5Shared.DTOs
 {
+    /// <summary>
+    /// Representa una salida de stock.
+    ///
+    /// Se usa para registrar qué producto salió,
+    /// para qué cliente fue y cuándo ocurrió.
+    /// </summary>
     public class SalidaDto
-{
-    public int Id { get; set; }
+    {
+        // Identificador único de la salida.
+        public int Id { get; set; }
 
-    public int ProductoId { get; set; }
+        // Producto afectado por la salida.
+        public int ProductoId { get; set; }
 
-    public string ProductoNombre { get; set; } = string.Empty;
+        // Nombre del producto para mostrar en pantalla.
+        public string ProductoNombre { get; set; } = string.Empty;
 
-    public int ClienteId { get; set; }
+        // Cliente asociado a la salida.
+        public int ClienteId { get; set; }
 
-    public string ClienteNombre { get; set; } = string.Empty;
+        // Nombre del cliente para consultas y reportes.
+        public string ClienteNombre { get; set; } = string.Empty;
 
-    public int Cantidad { get; set; }
+        // Cantidad descontada del stock.
+        public int Cantidad { get; set; }
 
-    public DateTime Fecha { get; set; }
-}
+        // Fecha en la que se realizó la salida.
+        public DateTime Fecha { get; set; }
+    }
 }

@@ -23,3 +23,6 @@ logs/
 
 # VS Code
 .vscode/
+
+Logs/
+*.publishSettings

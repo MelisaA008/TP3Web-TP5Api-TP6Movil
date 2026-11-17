@@ -100,5 +100,33 @@ namespace TP5WebApi.Services
 
             return true;
         }
+
+        public async Task<RespuestaPaginadaDto<CategoriaDto>> GetAllPaginado(ParametrosPaginacionDto p)
+        {
+            var query = _context.Categorias.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(p.Buscar))
+            {
+                var termino = p.Buscar.Trim().ToLower();
+                query = query.Where(c => c.Nombre.ToLower().Contains(termino));
+            }
+
+            query = p.OrdenarPor?.ToLower() switch
+            {
+                "nombre_desc" => query.OrderByDescending(c => c.Nombre),
+                "nombre" => query.OrderBy(c => c.Nombre),
+                _ => query.OrderBy(c => c.Id)
+            };
+
+            var total = await query.CountAsync();
+
+            var datos = await query
+                .Skip((p.Pagina - 1) * p.TamanoPagina)
+                .Take(p.TamanoPagina)
+                .Select(c => new CategoriaDto { Id = c.Id, Nombre = c.Nombre })
+                .ToListAsync();
+
+            return new RespuestaPaginadaDto<CategoriaDto>(datos, total, p.Pagina, p.TamanoPagina);
+        }
     }
 }

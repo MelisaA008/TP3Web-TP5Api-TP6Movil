@@ -1,0 +1,137 @@
+﻿@page "/login"
+@layout EmptyLayout
+
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+
+@inject AuthenticationStateProvider AuthProvider
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<PageTitle>Login</PageTitle>
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-5">
+
+            <div class="card shadow">
+
+                <div class="card-header text-center">
+
+                    <h3>
+                        Sistema de Gestión Comercial
+                    </h3>
+
+                </div>
+
+                <div class="card-body">
+
+                    @if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        <div class="alert alert-danger">
+                            @error
+                        </div>
+                    }
+
+                    <EditForm Model="@modelo"
+                              OnValidSubmit="ProcesarLogin">
+
+                        <DataAnnotationsValidator />
+
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Usuario
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="modelo.Username" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Contraseña
+                            </label>
+
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="modelo.Password" />
+
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+
+                            Ingresar
+
+                        </button>
+
+                    </EditForm>
+
+                    <hr />
+
+                    <div class="text-center">
+
+                        <a href="/register">
+                            Registrar Usuario
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code
+{
+    private LoginRequest modelo =
+        new();
+
+    private string? error;
+
+    private async Task ProcesarLogin()
+    {
+        error = null;
+
+        try
+        {
+            var exito =
+                await AuthService
+                    .Login(modelo);
+
+            if (exito)
+            {
+                Nav.NavigateTo("/pos");
+            }
+
+            error =
+                "Usuario o contraseña incorrectos.";
+        }
+        catch (Exception ex)
+        {
+            error =
+                ex.Message;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo(state.User.IsInRole("Admin") ? "/productos" : "/pos");
+        }
+    }
+}

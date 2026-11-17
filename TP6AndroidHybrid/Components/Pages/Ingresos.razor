@@ -1,0 +1,96 @@
+﻿@page "/ingresos"
+@attribute [Authorize(Roles = "Admin")]
+@inject IngresoService IngresoService
+@inject ProductoService ProductoService
+@inject ProveedorService ProveedorService
+
+<h3>Ingreso de Mercadería</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info">@mensaje</div>
+}
+
+<div class="card p-3 mb-3">
+    <label class="form-label">Producto</label>
+    <select class="form-select mb-2" @bind="form.ProductoId">
+        <option value="0">-- Seleccione --</option>
+        @foreach (var p in productos)
+        {
+            <option value="@p.Id">@p.Nombre (stock: @p.Stock)</option>
+        }
+    </select>
+
+    <label class="form-label">Proveedor</label>
+    <select class="form-select mb-2" @bind="form.ProveedorId">
+        <option value="0">-- Seleccione --</option>
+        @foreach (var pr in proveedores)
+        {
+            <option value="@pr.Id">@pr.Nombre</option>
+        }
+    </select>
+
+    <label class="form-label">Cantidad</label>
+    <input type="number" min="1" class="form-control mb-3" @bind="form.Cantidad" />
+
+    <button class="btn btn-success w-100" @onclick="Registrar">Registrar ingreso</button>
+</div>
+
+@foreach (var i in ingresos)
+{
+    <div class="card p-2 mb-2">
+        <strong>@i.ProductoNombre</strong>
+        <small>@i.ProveedorNombre · +@i.Cantidad · @i.Fecha.ToString("dd/MM/yyyy HH:mm")</small>
+    </div>
+}
+
+@code
+{
+    private List<ProductoDto> productos = new();
+    private List<ProveedorDto> proveedores = new();
+    private List<IngresoDto> ingresos = new();
+    private CrearIngresoDto form = new() { Cantidad = 1 };
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        try
+        {
+            productos = await ProductoService.GetProductosAsync();
+            proveedores = await ProveedorService.GetProveedores() ?? new();
+            ingresos = (await IngresoService.GetIngresos() ?? new())
+                .OrderByDescending(i => i.Fecha).ToList();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar: {ex.Message}";
+        }
+    }
+
+    private async Task Registrar()
+    {
+        if (form.ProductoId == 0 || form.ProveedorId == 0 || form.Cantidad <= 0)
+        {
+            mensaje = "Completá producto, proveedor y una cantidad mayor a 0.";
+            return;
+        }
+
+        try
+        {
+            var ok = await IngresoService.RegistrarIngreso(form);
+            mensaje = ok ? "Ingreso registrado. Stock actualizado." : "No se pudo registrar el ingreso.";
+
+            if (ok)
+            {
+                form = new CrearIngresoDto { Cantidad = 1 };
+                await Cargar();
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al registrar: {ex.Message}";
+        }
+    }
+}

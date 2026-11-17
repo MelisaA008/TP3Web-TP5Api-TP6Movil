@@ -1,0 +1,120 @@
+﻿@page "/usuarios"
+
+@using Microsoft.AspNetCore.Authorization
+@using TP5Shared.DTOs
+@using System.Net.Http.Json
+
+@attribute [Authorize(Roles = "Admin")] 
+
+<h3>Usuarios del Sistema</h3>
+
+@if (usuarios == null)
+{
+    <p>Cargando usuarios...</p>
+}
+else if (!usuarios.Any())
+{
+    <div class="alert alert-info">
+        No hay usuarios registrados.
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(mensajeError))
+    {
+        <div class="alert alert-warning">
+            @mensajeError
+        </div>
+    }
+    <table class="table table-striped">
+
+        <thead>
+
+            <tr>
+                <th>Id</th>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var usuario in usuarios)
+            {
+                <tr>
+
+                    <td>
+                        @usuario.Id
+                    </td>
+
+                    <td>
+                        @usuario.Username
+                    </td>
+
+                    <td>
+                        @usuario.Email
+                    </td>
+
+                    <td>
+
+                        @if (usuario.Rol == "Admin")
+                        {
+                            <span class="badge bg-danger">
+                                Admin
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                Usuario
+                            </span>
+                        }
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    // Lista de usuarios.
+    private List<UsuarioDto> usuarios = new();
+
+    protected override async Task
+        OnInitializedAsync()
+    {
+        await CargarUsuarios();
+    }
+
+    // Obtener usuarios de la API.
+    private string? mensajeError;
+
+    private async Task CargarUsuarios()
+    {
+        try
+        {
+            usuarios =
+                await Http.GetFromJsonAsync<
+                    List<UsuarioDto>>
+                    ("api/usuarios")
+                ?? new();
+        }
+        catch (Exception)
+        {
+            mensajeError =
+                "No fue posible cargar la lista de usuarios.";
+
+            usuarios = new();
+        }
+    }
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+}

@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TP5Shared.DTOs;
 using TP5Shared.Models;
-using TP5WebApi.Data;
 using TP5WebApi.Repositories;
 
 namespace TP5WebApi.Services
@@ -23,33 +22,33 @@ namespace TP5WebApi.Services
         }
 
         public async Task<(VentaDto? Venta, string? Error)>
-            RegistrarVentaAsync(
-                CrearVentaDto dto)
+            RegistrarVentaAsync(CrearVentaDto dto)
         {
-            await using var transaction =
-                await _context.Database
-                    .BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                var cliente =
-                    await _context.Clientes
-                        .FirstOrDefaultAsync(
-                            c => c.Id == dto.ClienteId);
+                _logger.LogInformation(
+                    "Intento de venta. ClienteId={ClienteId} CantidadRenglones={Renglones}",
+                    dto.ClienteId, dto.Detalles?.Count ?? 0);
+
+                var cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => c.Id == dto.ClienteId);
 
                 if (cliente == null)
                 {
-                    return (
-                        null,
-                        "Cliente no encontrado");
+                    _logger.LogWarning(
+                        "Venta rechazada. Cliente inexistente Id={ClienteId}", dto.ClienteId);
+
+                    return (null, "Cliente no encontrado");
                 }
 
-                if (dto.Detalles == null ||
-                    !dto.Detalles.Any())
+                if (dto.Detalles == null || !dto.Detalles.Any())
                 {
-                    return (
-                        null,
-                        "La venta debe contener al menos un detalle");
+                    _logger.LogWarning(
+                        "Venta rechazada. Sin detalles. ClienteId={ClienteId}", dto.ClienteId);
+
+                    return (null, "La venta debe contener al menos un detalle");
                 }
 
                 var venta = new Venta
@@ -62,25 +61,27 @@ namespace TP5WebApi.Services
 
                 foreach (var item in dto.Detalles)
                 {
-                    var producto =
-                        await _context.Productos
-                            .FirstOrDefaultAsync(
-                                p => p.Id == item.ProductoId);
+                    var producto = await _context.Productos
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductoId);
 
                     if (producto == null)
                     {
-                        return (
-                            null,
-                            $"Producto {item.ProductoId} no encontrado");
+                        _logger.LogWarning(
+                            "Venta rechazada. Producto inexistente Id={ProductoId}", item.ProductoId);
+
+                        return (null, $"Producto {item.ProductoId} no encontrado");
                     }
 
                     if (producto.Stock < item.Cantidad)
                     {
-                        return (
-                            null,
-                            $"Stock insuficiente para {producto.Nombre}");
+                        _logger.LogWarning(
+                            "Venta rechazada por stock insuficiente. Producto={ProductoId} StockActual={StockActual} Solicitado={Cantidad}",
+                            producto.Id, producto.Stock, item.Cantidad);
+
+                        return (null, $"Stock insuficiente para {producto.Nombre}");
                     }
 
+                    var stockAnterior = producto.Stock;
                     producto.Stock -= item.Cantidad;
 
                     var detalle = new DetalleVenta
@@ -92,21 +93,33 @@ namespace TP5WebApi.Services
                         Venta = venta
                     };
 
-                    venta.Total +=
-                        detalle.Cantidad *
-                        detalle.PrecioUnitario;
-
+                    venta.Total += detalle.Cantidad * detalle.PrecioUnitario;
                     venta.Detalles.Add(detalle);
+
+                    // Registra la salida de stock generada por esta línea de venta,
+                    // para que SalidasProductos sea el historial único de salidas.
+                    var salida = new SalidaProducto
+                    {
+                        ProductoId = producto.Id,
+                        ClienteId = dto.ClienteId,
+                        Cantidad = item.Cantidad,
+                        Fecha = venta.Fecha
+                    };
+
+                    _context.SalidasProductos.Add(salida);
+
+                    _logger.LogInformation(
+                        "Línea de venta procesada. Producto={ProductoId} Cantidad={Cantidad} StockAnterior={StockAnterior} StockActual={StockActual}",
+                        producto.Id, item.Cantidad, stockAnterior, producto.Stock);
                 }
 
-                await _repository
-                    .RegistrarVentaAsync(venta);
+                await _repository.RegistrarVentaAsync(venta);
 
                 await transaction.CommitAsync();
 
                 _logger.LogInformation(
-                    "Venta {VentaId} registrada correctamente",
-                    venta.Id);
+                    "Venta {VentaId} registrada correctamente. ClienteId={ClienteId} Total={Total}",
+                    venta.Id, venta.ClienteId, venta.Total);
 
                 var resultado = new VentaDto
                 {
@@ -119,11 +132,9 @@ namespace TP5WebApi.Services
                         .Select(d => new DetalleVentaDto
                         {
                             ProductoId = d.ProductoId,
-                            ProductoNombre =
-                                d.Producto?.Nombre ?? "",
+                            ProductoNombre = d.Producto?.Nombre ?? "",
                             Cantidad = d.Cantidad,
-                            PrecioUnitario =
-                                d.PrecioUnitario,                   
+                            PrecioUnitario = d.PrecioUnitario,
                         })
                         .ToList()
                 };
@@ -134,128 +145,94 @@ namespace TP5WebApi.Services
             {
                 await transaction.RollbackAsync();
 
-                _logger.LogError(
-                    ex,
-                    "Error al registrar venta");
+                _logger.LogError(ex, "Error al registrar venta. ClienteId={ClienteId}", dto.ClienteId);
 
-                return (
-                    null,
-                    "Error interno al registrar la venta");
+                return (null, "Error interno al registrar la venta");
             }
         }
 
-        public async Task<List<VentaListaDto>>
-            GetVentasAsync()
+        public async Task<List<VentaListaDto>> GetVentasAsync()
         {
             try
             {
-                var ventas =
-                    await _repository
-                        .ObtenerVentasAsync();
+                var ventas = await _repository.ObtenerVentasAsync();
 
                 return ventas
-                .Select(v => new VentaListaDto
-                {
-                    Id = v.Id,
-                    ClienteNombre = v.Cliente?.Nombre ?? "",
-                    Fecha = v.Fecha,
-                    Total = v.Total,
-
-                    // cantidad de renglones
-                    CantidadItems = v.Detalles.Count,
-
-                    // cantidad total de unidades vendidas
-                    CantidadUnidades =
-                    v.Detalles.Sum(d => d.Cantidad)
-                })
-                .ToList();
+                    .Select(v => new VentaListaDto
+                    {
+                        Id = v.Id,
+                        ClienteNombre = v.Cliente?.Nombre ?? "",
+                        Fecha = v.Fecha,
+                        Total = v.Total,
+                        CantidadItems = v.Detalles.Count,
+                        CantidadUnidades = v.Detalles.Sum(d => d.Cantidad)
+                    })
+                    .ToList();
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Error al obtener ventas");
-
+                _logger.LogError(ex, "Error al obtener ventas");
                 return [];
             }
         }
 
-        public async Task<VentaDto?>
-            GetVentaByIdAsync(int id)
+        public async Task<VentaDto?> GetVentaByIdAsync(int id)
         {
             try
             {
-                var venta =
-                    await _repository
-                        .ObtenerVentaPorIdAsync(id);
+                var venta = await _repository.ObtenerVentaPorIdAsync(id);
 
                 if (venta == null)
+                {
+                    _logger.LogWarning("Consulta de venta inexistente. VentaId={VentaId}", id);
                     return null;
+                }
 
                 return new VentaDto
                 {
                     Id = venta.Id,
                     ClienteId = venta.ClienteId,
-                    ClienteNombre =
-                        venta.Cliente?.Nombre ?? "",
+                    ClienteNombre = venta.Cliente?.Nombre ?? "",
                     Fecha = venta.Fecha,
                     Total = venta.Total,
                     Detalles = venta.Detalles
                         .Select(d => new DetalleVentaDto
                         {
-                            ProductoId =
-                                d.ProductoId,
-                            ProductoNombre =
-                                d.Producto?.Nombre ?? "",
-                            Cantidad =
-                                d.Cantidad,
-                            PrecioUnitario =
-                                d.PrecioUnitario,                            
+                            ProductoId = d.ProductoId,
+                            ProductoNombre = d.Producto?.Nombre ?? "",
+                            Cantidad = d.Cantidad,
+                            PrecioUnitario = d.PrecioUnitario,
                         })
                         .ToList()
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Error obteniendo venta {VentaId}",
-                    id);
-
+                _logger.LogError(ex, "Error obteniendo venta {VentaId}", id);
                 return null;
             }
         }
 
-        public async Task<(bool Exito, string? Error)>
-            EliminarVentaAsync(int id)
+        public async Task<(bool Exito, string? Error)> EliminarVentaAsync(int id)
         {
             try
             {
-                var eliminado =
-                    await _repository
-                        .EliminarVentaAsync(id);
+                var eliminado = await _repository.EliminarVentaAsync(id);
 
                 if (!eliminado)
                 {
-                    return (
-                        false,
-                        "Venta no encontrada");
+                    _logger.LogWarning("Intento de eliminar venta inexistente. VentaId={VentaId}", id);
+                    return (false, "Venta no encontrada");
                 }
 
-                return (
-                    true,
-                    null);
+                _logger.LogInformation("Venta eliminada. VentaId={VentaId}", id);
+
+                return (true, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Error eliminando venta {VentaId}",
-                    id);
-
-                return (
-                    false,
-                    "Error interno");
+                _logger.LogError(ex, "Error eliminando venta {VentaId}", id);
+                return (false, "Error interno");
             }
         }
     }

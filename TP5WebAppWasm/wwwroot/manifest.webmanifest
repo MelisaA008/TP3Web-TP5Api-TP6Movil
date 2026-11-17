@@ -1,0 +1,10 @@
+{
+  "name": "TP5WebAppWasm",
+  "short_name": "TP5WebAppWasm",
+  "id": "./",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#03173d",
+  "prefer_related_applications": false
+}

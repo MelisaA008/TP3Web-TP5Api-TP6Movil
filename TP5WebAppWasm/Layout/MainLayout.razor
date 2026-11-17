@@ -1,0 +1,60 @@
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Nav
+@inject TP5WebAppWasm.Services.AuthService AuthService
+
+<AuthorizeView>
+     <Authorized>
+          <div class="app-header">
+
+              <div class="app-brand">
+                    <div class="app-logo">SG</div>
+                    
+
+                    <nav class="app-nav ms-3">
+                        @if (context.User.IsInRole("Admin"))
+                        {
+                            <a href="/productos">Productos</a>
+                            <a href="/categorias">Categorías</a>
+                            <a href="/proveedores">Proveedores</a>
+                            <a href="/clientes">Clientes</a>
+                            <a href="/ingresos">Ingresos</a>
+                            <a href="/ventas">Ventas</a>
+                            <a href="/usuarios">Usuarios</a>
+                            <a href="/reportes">Reportes</a>
+                        }
+                        else
+                        {
+                            <a href="/pos">Punto de Venta</a>
+                            <a href="/ventas">Ventas</a>
+                        }
+                    </nav>
+              </div>
+
+              <div class="app-user">
+                    <div class="app-avatar">@ObtenerIniciales(context.User.Identity?.Name)</div>
+                    <span class="app-username">@context.User.Identity?.Name</span>
+                    <button class="btn-salir" @onclick="CerrarSesion">Salir</button>
+               
+              </div>
+
+          </div>
+     </Authorized>
+</AuthorizeView>
+
+@Body
+
+@code
+{
+    private string ObtenerIniciales(string? nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre)) return "US";
+        return nombre.Length >= 2 ? nombre[..2].ToUpper() : nombre.ToUpper();
+    }
+    private async Task CerrarSesion()
+    {
+        await AuthService.Logout();
+
+        Nav.NavigateTo("/login");
+    }
+}

@@ -1,4 +1,6 @@
 ﻿using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
+using TP5Shared.Models;
 
 namespace TP5Shared.Models
 {

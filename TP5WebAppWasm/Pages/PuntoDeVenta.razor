@@ -1,0 +1,172 @@
+﻿@page "/pos"
+
+@attribute [Authorize]
+
+@inject ProductoService ProductoService
+@inject ClienteService ClienteService
+@inject VentaService VentaService
+@inject ReporteService ReporteService
+
+<h3>Punto de Venta</h3>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card p-3 mb-3">
+            <label class="form-label">Buscar producto (nombre o código)</label>
+            <input class="form-control form-control-lg" @bind="busqueda" @bind:event="oninput"
+                   @onkeyup="BuscarAlTipear" placeholder="Escribí para buscar..." autofocus />
+
+            @if (resultados.Any())
+            {
+                <table class="table table-sm mt-3">
+                    <tbody>
+                        @foreach (var p in resultados)
+                        {
+                            <tr>
+                                <td>@p.Nombre</td>
+                                <td>$ @p.Precio</td>
+                                <td>Stock: @p.Stock</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" disabled="@(p.Stock <= 0)"
+                                            @onclick="() => AgregarAlTicket(p)">
+                                        Agregar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card p-3">
+            <h5>Ticket</h5>
+
+            @if (!ticket.Any())
+            {
+                <p class="text-muted">Sin productos agregados.</p>
+            }
+            else
+            {
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Producto</th><th>Cant.</th><th>Subtotal</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ticket)
+                        {
+                            <tr>
+                                <td>@item.ProductoNombre</td>
+                                <td>@item.Cantidad</td>
+                                <td>$ @(item.Precio * item.Cantidad)</td>
+                                <td><button class="btn btn-sm btn-outline-danger" @onclick="() => ticket.Remove(item)">Quitar</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    Total: <strong>$ @ticket.Sum(x => x.Precio * x.Cantidad)</strong>
+                </div>
+            }
+
+            <label class="form-label">Cliente</label>
+            <select class="form-select mb-3" @bind="clienteSeleccionadoId">
+                <option value="0">-- Seleccione un cliente --</option>
+                @foreach (var c in clientes)
+                {
+                    <option value="@c.Id">@c.Nombre</option>
+                }
+            </select>
+
+            <button class="btn btn-lg btn-success w-100" @onclick="Cobrar" disabled="@(!ticket.Any())">
+                Cobrar
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(mensaje))
+            {
+                <div class="alert alert-info mt-2 mb-0">@mensaje</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string busqueda = string.Empty;
+    private List<ProductoDto> resultados = new();
+    private List<ClienteDto> clientes = new();
+    private List<TicketItem> ticket = new();
+    private int clienteSeleccionadoId = 0;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        clientes = await ClienteService.GetClientes() ?? new();
+    }
+
+    private async Task BuscarAlTipear()
+    {
+        if (string.IsNullOrWhiteSpace(busqueda))
+        {
+            resultados = new();
+            return;
+        }
+
+        var respuesta = await ProductoService.GetProductosPaginados(
+            new ParametrosPaginacionDto { Buscar = busqueda, TamanoPagina = 10 });
+
+        resultados = respuesta?.Datos.ToList() ?? new();
+    }
+
+    private void AgregarAlTicket(ProductoDto producto)
+    {
+        var existente = ticket.FirstOrDefault(t => t.ProductoId == producto.Id);
+        if (existente != null)
+            existente.Cantidad++;
+        else
+            ticket.Add(new TicketItem { ProductoId = producto.Id, ProductoNombre = producto.Nombre, Precio = producto.Precio, Cantidad = 1 });
+
+        mensaje = $"{producto.Nombre} agregado.";
+    }
+
+    private async Task Cobrar()
+    {
+        if (clienteSeleccionadoId == 0)
+        {
+            mensaje = "Seleccioná un cliente antes de cobrar.";
+            return;
+        }
+
+        var venta = new CrearVentaDto
+        {
+            ClienteId = clienteSeleccionadoId,
+            Detalles = ticket.Select(t => new CrearVentaDetalleDto { ProductoId = t.ProductoId, Cantidad = t.Cantidad }).ToList()
+        };
+
+        var ventaId = await VentaService.RegistrarVentaConId(venta);
+
+        if (ventaId.HasValue)
+        {
+            mensaje = "Venta registrada correctamente. Generando ticket...";
+            ticket.Clear();
+            busqueda = string.Empty;
+            resultados = new();
+
+            await ReporteService.DescargarTicket(ventaId.Value);
+        }
+        else
+        {
+            mensaje = "No se pudo registrar la venta (stock insuficiente?).";
+        }
+    }
+
+    private class TicketItem
+    {
+        public int ProductoId { get; set; }
+        public string ProductoNombre { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal Precio { get; set; }
+    }
+}

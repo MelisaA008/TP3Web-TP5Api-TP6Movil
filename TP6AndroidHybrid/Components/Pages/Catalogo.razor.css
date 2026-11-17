@@ -1,0 +1,58 @@
+.producto-card {
+    border: none;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+    .producto-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+.producto-imagen {
+    width: 100%;
+    height: 180px;
+    object-fit: contain;
+    background: #f4f6fb;
+}
+
+.producto-categoria {
+    background: #e8eaf6;
+    color: #2d3561;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.25rem 0.6rem;
+}
+
+.producto-precio {
+    color: #00b8a9;
+    font-weight: 700;
+    font-size: 1.4rem;
+}
+
+.badge-stock-ok {
+    background: #00b8a9;
+    color: white;
+}
+
+.badge-stock-no {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-agregar {
+    background: #ff6b6b;
+    border: none;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    width: 100%;
+    padding: 0.5rem;
+}
+
+    .btn-agregar:hover {
+        background: #e85555;
+    }

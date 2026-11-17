@@ -1,0 +1,92 @@
+﻿@page "/salidas"
+
+@using System.Net.Http.Json
+@using TP5Shared.DTOs
+
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Salidas de Stock</h3>
+
+@if (error != null)
+{
+    <div class="alert alert-danger">
+        @error
+    </div>
+}
+
+@if (salidas == null)
+{
+    <p>Cargando salidas...</p>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+
+            <tr>
+                <th>Id</th>
+                <th>Producto</th>
+                <th>Cliente</th>
+                <th>Cantidad</th>
+                <th>Fecha</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var salida in salidas)
+            {
+                <tr>
+
+                    <td>@salida.Id</td>
+
+                    <td>@salida.ProductoNombre</td>
+
+                    <td>@salida.ClienteNombre</td>
+
+                    <td>@salida.Cantidad</td>
+
+                    <td>
+                        @salida.Fecha.ToString("dd/MM/yyyy")
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    private List<SalidaDto>? salidas;
+
+    private string? error;
+
+    [Inject]
+    private HttpClient Http { get; set; }
+        = default!;
+
+    protected override async Task
+        OnInitializedAsync()
+    {
+        try
+        {
+            salidas =
+                await Http.GetFromJsonAsync
+                <
+                    List<SalidaDto>
+                >
+                (
+                    "api/Salidas"
+                );
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+}

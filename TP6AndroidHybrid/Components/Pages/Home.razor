@@ -1,0 +1,21 @@
+﻿@page "/"
+@inject NavigationManager Nav
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState == null)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var user = (await AuthState).User;
+
+        Nav.NavigateTo(user.Identity?.IsAuthenticated == true ? "/catalogo" : "/login");
+    }
+}

@@ -1,0 +1,72 @@
+﻿@page "/reportes"
+@attribute [Authorize(Roles = "Admin")]
+@inject ReporteService ReporteService
+
+<h3>Reportes</h3>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert alert-info">@mensaje</div>
+}
+
+<div class="row g-3">
+    @foreach (var r in opciones)
+    {
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h5>@r.Titulo</h5>
+                <button class="btn btn-primary mb-2" @onclick="() => Descargar(r.Accion)">Descargar PDF</button>
+                <button class="btn btn-outline-secondary" @onclick="() => AbrirEmail(r.Tipo)">Enviar por mail</button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (tipoSeleccionado != null)
+{
+    <div class="card p-3 mt-3" style="max-width:400px">
+        <label class="form-label">Enviar a:</label>
+        <input class="form-control mb-2" @bind="destinatario" placeholder="correo@ejemplo.com" />
+        <button class="btn btn-success" @onclick="ConfirmarEnvio">Enviar</button>
+    </div>
+}
+
+@code {
+    private string? mensaje;
+    private string? tipoSeleccionado;
+    private string destinatario = string.Empty;
+
+    private record Opcion(string Titulo, string Tipo, Func<Task> Accion);
+    private List<Opcion> opciones = new();
+
+    protected override void OnInitialized()
+    {
+        opciones = new()
+        {
+            new("Stock actual", "stock", ReporteService.DescargarStock),
+            new("Ventas (todas)", "ventas", ReporteService.DescargarVentas),
+            new("Ventas de hoy", "ventashoy", ReporteService.DescargarVentasHoy),
+            new("Salidas de stock", "salidas", ReporteService.DescargarSalidas)
+        };
+    }
+
+    private async Task Descargar(Func<Task> accion)
+    {
+        try { await accion(); }
+        catch (Exception ex) { mensaje = $"Error al descargar: {ex.Message}"; }
+    }
+
+    private void AbrirEmail(string tipo)
+    {
+        tipoSeleccionado = tipo;
+        mensaje = null;
+    }
+
+    private async Task ConfirmarEnvio()
+    {
+        if (string.IsNullOrWhiteSpace(destinatario) || tipoSeleccionado == null) return;
+        var ok = await ReporteService.EnviarPorCorreo(tipoSeleccionado, destinatario);
+        mensaje = ok ? "Reporte enviado correctamente." : "No se pudo enviar el reporte.";
+        tipoSeleccionado = null;
+    }
+}

@@ -21,7 +21,8 @@ namespace TP5WebApi.Services
             var jwtSettings = _config.GetSection("Jwt");
 
             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+                Encoding.UTF8.GetBytes(
+                    jwtSettings["Key"]!));
 
             var creds = new SigningCredentials(
                 key,

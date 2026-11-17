@@ -1,0 +1,67 @@
+﻿@using TP5Shared.DTOs
+
+<div class="card shadow h-100">
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(Producto.ImagenPath))
+        {
+            <img src="@($"https://localhost:5001/{Producto.ImagenPath}")"
+                 class="img-fluid rounded border mb-3"
+                 style="width:100%;height:200px;object-fit:contain;" />
+        }
+        else
+        {
+            <div class="border rounded d-flex justify-content-center align-items-center mb-3"
+                 style="height:200px">
+                Sin imagen
+            </div>
+        }
+
+        <span class="badge bg-secondary">
+            @Producto.CategoriaNombre
+        </span>
+
+        <h5>@Producto.Nombre</h5>
+
+        <p>
+            Proveedor:
+            @Producto.ProveedorNombre
+        </p>
+
+        <p>
+            Stock:
+            @Producto.Stock
+        </p>
+
+        <h4>
+            $ @Producto.Precio
+        </h4>
+
+        @if (Producto.Stock > 0)
+        {
+            <InputNumber class="form-control mb-2"
+                         @bind-Value="Cantidad" />
+
+            <button class="btn btn-success"
+                    @onclick="Agregar">
+                Agregar al carrito
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public ProductoDto Producto { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<(ProductoDto, int)> OnAgregar { get; set; }
+
+    private int Cantidad = 1;
+
+    private async Task Agregar()
+    {
+        await OnAgregar.InvokeAsync((Producto, Cantidad));
+    }
+}

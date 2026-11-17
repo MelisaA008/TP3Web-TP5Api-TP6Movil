@@ -16,6 +16,15 @@ public class SalidasController : ControllerBase
         _service = service;
     }
 
+    [HttpGet]
+    public async Task<IActionResult>
+    GetAll()
+    {
+        var salidas =
+            await _service.GetAll();
+               return Ok(salidas);
+    }
+
     [HttpPost]
     public async Task<IActionResult> RegistrarSalida(
         [FromBody] CrearSalidaDto dto)

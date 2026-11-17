@@ -2,13 +2,30 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
-//using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
+using Serilog;
 using System.Text;
 using TP5Shared.Models;
 using TP5WebApi.Repositories;
 using TP5WebApi.Services;
 
+// Licencia gratuita de QuestPDF (reportes PDF)
+QuestPDF.Settings.License = LicenseType.Community;
+
+//serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+//serilog
+builder.Host.UseSerilog(
+    (context, services, configuration) =>
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext());
 
 // -------------------- Servicios --------------------
 // Servicios de negocio
@@ -23,6 +40,8 @@ builder.Services.AddScoped<ProductoService>();
 builder.Services.AddScoped<ProveedorService>();
 builder.Services.AddScoped<SalidaService>();
 builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<ReportePdfService>();
+builder.Services.AddScoped<EmailService>();
 
 // Controladores
 builder.Services.AddControllers();
@@ -52,43 +71,30 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Swagger / OpenAPI
+// Swagger / OpenAPI con botón Authorize para el token JWT
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-//Configurar Swagger para ingresar el token Bearer
-
-/*builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddSecurityDefinition("Bearer",
-        new OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Description = "Bearer Token",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT"
-        });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "TP5 Web API",
+        Version = "v1"
+    });
 
-    options.AddSecurityRequirement(
-        new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference =
-                        new OpenApiReference
-                        {
-                            Type =
-                                ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                },
-                Array.Empty<string>()
-            }
-        });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Pegá solo el token, sin la palabra Bearer"
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
 });
-*/
+
 // Autenticación JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -113,19 +119,57 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Swagger solo en Development
-if (app.Environment.IsDevelopment())
+// Manejo global de errores: registra en el log cualquier excepción no controlada
+app.UseExceptionHandler(appError =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    appError.Run(async context =>
+    {
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var ex = feature?.Error;
+
+        if (ex != null)
+        {
+            Log.Error(ex, "Error no controlado en {Method} {Path}", context.Request.Method, context.Request.Path);
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        object respuesta = app.Environment.IsDevelopment() && ex != null
+            ? new { error = "Error interno", detalle = ex.ToString() }
+            : new { error = "Ocurrió un error interno. Quedó registrado en el log del sistema." };
+
+        await context.Response.WriteAsJsonAsync(respuesta);
+    });
+});
+
+//serilog
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate =
+        "HTTP {RequestMethod} {RequestPath} respondió {StatusCode} en {Elapsed:0.0000} ms";
+});
+
+// Swagger disponible también en el hosting
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles(); //imagenes
+
 app.UseCors("Permisivo");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
-
+try
+{
+    app.Run();
+}
+finally
+{
+    Log.CloseAndFlush();
+}

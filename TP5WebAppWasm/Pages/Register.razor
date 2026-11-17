@@ -1,0 +1,132 @@
+﻿@page "/register"
+@layout EmptyLayout
+
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<div class="row justify-content-center mt-5">
+
+    <div class="col-md-4 card p-4 shadow-sm">
+
+        <h3 class="text-center mb-3">
+            Registrarse
+        </h3>
+
+        @if (!string.IsNullOrWhiteSpace(mensaje))
+        {
+            <div class="alert alert-success">
+                @mensaje
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="alert alert-danger">
+                @error
+            </div>
+        }
+
+        <EditForm Model="@modelo"
+                  OnValidSubmit="ProcesarRegistro">
+
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Usuario
+                </label>
+
+                <InputText class="form-control"
+                           @bind-Value="modelo.Username" />
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Email
+                </label>
+
+                <InputText class="form-control"
+                           @bind-Value="modelo.Email" />
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Contraseña
+                </label>
+
+                <InputText type="password"
+                           class="form-control"
+                           @bind-Value="modelo.Password" />
+
+            </div>
+
+            <button type="submit"
+                    class="btn btn-success w-100">
+
+                Registrarse
+
+            </button>
+
+        </EditForm>
+
+        <div class="text-center mt-3">
+
+            <a href="/login">
+                Ya tengo una cuenta
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code
+{
+    // Modelo asociado al formulario.
+    private RegisterRequest modelo =
+        new();
+
+    private string? mensaje;
+
+    private string? error;
+
+    // Registrar usuario.
+    private async Task
+        ProcesarRegistro()
+    {
+        mensaje = null;
+        error = null;
+
+        var exito =
+            await AuthService
+                .Register(modelo);
+
+        if (exito)
+        {
+            mensaje =
+                "Usuario registrado correctamente.";
+
+            modelo =
+                new RegisterRequest();
+
+            // Redirigir al Login luego de un registro exitoso.
+            await Task.Delay(1500);
+
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            error =
+                "No fue posible registrar el usuario.";
+        }
+    }
+}

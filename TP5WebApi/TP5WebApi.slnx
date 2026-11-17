@@ -1,7 +1,8 @@
 <Solution>
   <Project Path="../TP5Shared/TP5Shared.csproj" />
-  <Project Path="../TP5WebApp/TP5WebApp.csproj" Id="00c54895-8bc4-47e3-b977-00b9f969a6ed">
-    <BuildDependency Project="TP5WebApi.csproj" />
+  <Project Path="../TP5WebAppWasm/TP5WebAppWasm.csproj" Id="667dcb74-ff0c-4969-85be-54ab95dd79f5" />
+  <Project Path="../TP6AndroidHybrid/TP6AndroidHybrid.csproj" Id="c396e07f-7906-4bbc-9ebe-da2cffe3455e">
+    <Deploy Solution="Debug|*" />
   </Project>
   <Project Path="TP5WebApi.csproj" />
 </Solution>

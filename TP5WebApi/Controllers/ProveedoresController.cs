@@ -1,45 +1,44 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TP5Shared.DTOs;
+using TP5WebApi.Services;
+
+namespace TP5WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class ProveedoresController : ControllerBase
 {
-    private readonly DataContext _context;
-    public ProveedoresController(DataContext context) => _context = context;
-    
-    [HttpGet] public async Task<IActionResult> GetAll() => Ok(
-        await _context.Proveedores.ToListAsync());
-    
-    [HttpGet("{id}")] public async Task<IActionResult> GetById(
-        int id) => Ok(await _context.Proveedores.FindAsync(id));
-    
-    [Authorize(Roles = "Admin")]
-    [HttpPost] public async Task<IActionResult> Create(
-        Proveedor proveedor) { _context.Proveedores.Add(proveedor); 
-        await _context.SaveChangesAsync(); 
-        return Ok(proveedor); }
-        
-    [Authorize(Roles = "Admin")]
-    [HttpPut("{id}")] public async Task<IActionResult> Update(
-        int id, Proveedor proveedor) { 
-        if (id != proveedor.Id) 
-            return BadRequest(); _context.Entry(proveedor).State = EntityState.Modified; 
-        await _context.SaveChangesAsync(); 
-        return NoContent(); }
-    
-    [Authorize(Roles = "Admin")]
-    [HttpDelete("{id}")] public async Task<IActionResult> Delete(
-        int id) { var proveedor = await _context.Proveedores.FindAsync(id); 
-        if (proveedor == null) 
-            return NotFound(); _context.Proveedores.Remove(proveedor); 
-        await _context.SaveChangesAsync(); 
-        return NoContent(); }
-   
-    [AllowAnonymous]
-    [HttpGet("prueba")]
-    public IActionResult Prueba()
+    private readonly ProveedorService _service;
+    public ProveedoresController(ProveedorService service) => _service = service;
+
+    [HttpGet]
+    public async Task<ActionResult<RespuestaPaginadaDto<ProveedorDto>>> Get([FromQuery] ParametrosPaginacionDto parametros)
+        => Ok(await _service.GetAllPaginado(parametros));
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ProveedorDto>> GetById(int id)
     {
-        return Ok("Funciona");
+        var proveedor = await _service.GetById(id);
+        return proveedor == null ? NotFound() : Ok(proveedor);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CrearProveedorDto dto)
+    {
+        var nuevo = await _service.Create(dto);
+        return CreatedAtAction(nameof(GetById), new { id = nuevo.Id }, nuevo);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CrearProveedorDto dto)
+        => await _service.Update(id, dto) ? NoContent() : NotFound();
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+        => await _service.Delete(id) ? NoContent() : NotFound();
 }

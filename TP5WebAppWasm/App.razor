@@ -1,0 +1,54 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<CascadingAuthenticationState>
+
+    <ErrorBoundary>
+
+        <Router AppAssembly="@typeof(App).Assembly">
+
+            <Found Context="routeData">
+
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+
+                    <NotAuthorized>
+
+                        <div class="alert alert-warning m-4">
+
+                            <h4>
+                                Acceso no autorizado
+                            </h4>
+
+                            <p>
+                                No tenés permisos para acceder a esta página.
+
+                                <a href="/login">
+                                    Iniciar sesión
+                                </a>
+
+                            </p>
+
+                        </div>
+
+                    </NotAuthorized>
+
+                </AuthorizeRouteView>
+
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+
+            </Found>
+
+            <NotFound>
+
+                <LayoutView Layout="@typeof(MainLayout)">
+
+                    <p class="p-4">
+                        Página no encontrada.
+                    </p>
+
+                </LayoutView>
+
+            </NotFound>
+
+        </Router>
+    </ErrorBoundary>
+</CascadingAuthenticationState>

@@ -17,6 +17,20 @@
             _context.Productos.Add(producto);
             await _context.SaveChangesAsync();
         }
+        /// <summary>
+        /// Devuelve una consulta base de productos.
+        /// </summary>
+        ///
+        /// Se utiliza para aplicar filtros,
+        /// ordenamiento y paginación.
+        public IQueryable<Producto> Query()
+        {
+            return _context.Productos
+                .Include(p => p.Categoria)
+                .Include(p => p.Proveedor)
+                .AsNoTracking()
+                .AsQueryable();
+        }
 
         public async Task UpdateAsync(Producto producto)
         {

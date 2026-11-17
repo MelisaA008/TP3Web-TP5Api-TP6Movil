@@ -1,0 +1,249 @@
+﻿@page "/categorias"
+
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+
+@inject CategoriaService CategoriaService
+
+<h3>Categorías</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+
+    <div class="card-header">
+
+        @(categoriaEditandoId.HasValue
+            ? "Editar categoría"
+            : "Nueva categoría")
+
+    </div>
+
+    <div class="card-body">
+
+        <EditForm Model="categoriaForm"
+                  OnValidSubmit="GuardarCategoria">
+
+            <div class="row">
+
+                <div class="col-md-8">
+
+                    <label>
+                        Nombre
+                    </label>
+
+                    <InputText class="form-control"
+                               @bind-Value="categoriaForm.Nombre" />
+
+                </div>
+
+            </div>
+
+            <button type="submit"
+                    class="btn btn-success mt-3 me-2">
+
+                Guardar
+
+            </button>
+
+            @if (categoriaEditandoId.HasValue)
+            {
+                <button type="button"
+                        class="btn btn-secondary mt-3"
+                        @onclick="CancelarEdicion">
+
+                    Cancelar
+
+                </button>
+            }
+
+        </EditForm>
+
+    </div>
+
+</div>
+
+@if (categorias == null)
+{
+    <p>Cargando categorías...</p>
+}
+else if (!categorias.Any())
+{
+    <div class="alert alert-warning">
+        No hay categorías registradas.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th></th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var categoria in categorias)
+            {
+                <tr>
+
+                    <td>
+                        @categoria.Id
+                    </td>
+
+                    <td>
+                        @categoria.Nombre
+                    </td>
+
+                    <td>
+
+                        <button class="btn btn-warning btn-sm me-2"
+                                @onclick="() => Editar(categoria)">
+
+                            Editar
+
+                        </button>
+
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => Eliminar(categoria.Id)">
+
+                            Eliminar
+
+                        </button>
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    // Categorías mostradas en pantalla.
+    private List<CategoriaDto>? categorias;
+
+    // Datos utilizados en el formulario.
+    private CrearCategoriaDto categoriaForm =
+        new();
+
+    // Indica si estoy editando una categoría.
+    private int? categoriaEditandoId;
+
+    private string? mensaje;
+
+    // Cargar categorías al abrir la página.
+    protected override async Task
+        OnInitializedAsync()
+    {
+        await CargarCategorias();
+    }
+
+    // Consultar categorías.
+    private async Task
+        CargarCategorias()
+    {
+        categorias =
+            await CategoriaService
+                .GetCategorias();
+    }
+
+    // Crear o actualizar categoría.
+    private async Task
+        GuardarCategoria()
+    {
+        bool resultado;
+
+        if (categoriaEditandoId.HasValue)
+        {
+            resultado =
+                await CategoriaService
+                    .ActualizarCategoria(
+                        categoriaEditandoId.Value,
+                        categoriaForm);
+
+            mensaje =
+                resultado
+                    ? "Categoría actualizada."
+                    : "No se pudo actualizar.";
+        }
+        else
+        {
+            resultado =
+                await CategoriaService
+                    .CrearCategoria(
+                        categoriaForm);
+
+            mensaje =
+                resultado
+                    ? "Categoría creada."
+                    : "No se pudo crear.";
+        }
+
+        categoriaForm =
+            new CrearCategoriaDto();
+
+        categoriaEditandoId =
+            null;
+
+        await CargarCategorias();
+    }
+
+    // Cargar datos en el formulario para editar.
+    private void
+        Editar(
+            CategoriaDto categoria)
+    {
+        categoriaEditandoId =
+            categoria.Id;
+
+        categoriaForm =
+            new CrearCategoriaDto
+            {
+                Nombre =
+                    categoria.Nombre
+            };
+    }
+
+    // Cancelar edición y limpiar formulario.
+    private void
+        CancelarEdicion()
+    {
+        categoriaEditandoId =
+            null;
+
+        categoriaForm =
+            new CrearCategoriaDto();
+    }
+
+    // Eliminar categoría.
+    private async Task
+        Eliminar(
+            int id)
+    {
+        var resultado =
+            await CategoriaService
+                .EliminarCategoria(id);
+
+        mensaje =
+            resultado
+                ? "Categoría eliminada."
+                : "No se pudo eliminar.";
+
+        await CargarCategorias();
+    }
+}

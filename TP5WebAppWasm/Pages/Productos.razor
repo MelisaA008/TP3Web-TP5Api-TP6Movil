@@ -1,0 +1,414 @@
+﻿@page "/productos"
+
+@using Microsoft.AspNetCore.Components.Forms
+@using TP5Shared.DTOs
+@using TP5WebAppWasm.Services
+
+@attribute [Authorize(Roles = "Admin")]
+
+@inject ProductoService ProductoService
+@inject CategoriaService CategoriaService
+@inject ProveedorService ProveedorService
+
+<h3>Productos</h3>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert alert-info">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+
+    <div class="card-header">
+        @(productoEditandoId.HasValue
+            ? "Editar producto"
+            : "Nuevo producto")
+    </div>
+
+    <div class="card-body">
+
+        <EditForm Model="nuevoProducto"
+                  OnValidSubmit="GuardarProducto">
+
+            <DataAnnotationsValidator />
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label">
+                        Nombre
+                    </label>
+
+                    <InputText class="form-control"
+                               @bind-Value="nuevoProducto.Nombre" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">
+                        Stock
+                    </label>
+
+                    <InputNumber class="form-control"
+                                 @bind-Value="nuevoProducto.Stock" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">
+                        Precio
+                    </label>
+
+                    <InputNumber class="form-control"
+                                 @bind-Value="nuevoProducto.Precio" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">
+                        Categoría
+                    </label>
+
+                    <InputSelect class="form-select"
+                                 @bind-Value="nuevoProducto.CategoriaId">
+
+                        <option value="0">
+                            Seleccione...
+                        </option>
+
+                        @foreach (var categoria in categorias)
+                        {
+                            <option value="@categoria.Id">
+                                @categoria.Nombre
+                            </option>
+                        }
+
+                    </InputSelect>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">
+                        Proveedor
+                    </label>
+
+                    <InputSelect class="form-select"
+                                 @bind-Value="nuevoProducto.ProveedorId">
+
+                        <option value="0">
+                            Seleccione...
+                        </option>
+
+                        @foreach (var proveedor in proveedores)
+                        {
+                            <option value="@proveedor.Id">
+                                @proveedor.Nombre
+                            </option>
+                        }
+
+                    </InputSelect>
+                </div>
+
+            </div>
+
+            <div class="row mt-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Imagen
+                    </label>
+
+                    <InputFile OnChange="SeleccionarImagen"
+                               class="form-control" />
+
+                </div>
+
+                <div class="col-md-6">
+
+                    @if (!string.IsNullOrWhiteSpace(previsualizacion))
+                    {
+                        <img src="@previsualizacion"
+                             style="max-height:180px;"
+                             class="img-thumbnail" />
+                    }
+
+                </div>
+
+            </div>
+
+            <div class="mt-3">
+
+                <button type="submit"
+                        class="btn btn-success me-2">
+
+                    @(productoEditandoId.HasValue
+                        ? "Actualizar"
+                        : "Guardar")
+
+                </button>
+
+                @if (productoEditandoId.HasValue)
+                {
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="CancelarEdicion">
+
+                        Cancelar
+
+                    </button>
+                }
+
+            </div>
+
+        </EditForm>
+
+    </div>
+
+</div>
+
+@if (productos == null)
+{
+    <p>Cargando productos...</p>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+            <tr>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Stock</th>
+                <th>Precio</th>
+                <th>Proveedor</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var producto in productos)
+            {
+                <tr>
+
+                    <td>
+
+                        @if (!string.IsNullOrWhiteSpace(producto.ImagenPath))
+                        {
+                            <img src="@($"https://localhost:5001/{producto.ImagenPath}")"
+                                 width="70"
+                                 class="img-thumbnail" />
+                        }
+                        else
+                        {
+                            <small>Sin imagen</small>
+                        }
+
+                    </td>
+
+                    <td>@producto.Nombre</td>
+
+                    <td>@producto.Stock</td>
+
+                    <td>$ @producto.Precio</td>
+
+                    <td>@producto.ProveedorNombre</td>
+
+                    <td>
+
+                        <button class="btn btn-warning btn-sm me-2"
+                                @onclick="() => Editar(producto)">
+                            Editar
+                        </button>
+
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => Eliminar(producto.Id)">
+                            Eliminar
+                        </button>
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+@code {
+
+    private List<ProductoDto>? productos;
+
+    private List<CategoriaDto> categorias = new();
+
+    private List<ProveedorDto> proveedores = new();
+
+    private CrearProductoDto nuevoProducto = new();
+
+    private int? productoEditandoId;
+
+    private string? mensaje;
+
+    private IBrowserFile? imagenSeleccionada;
+
+    private string? previsualizacion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProductos();
+
+        categorias =
+            await CategoriaService.GetCategorias()
+            ?? new();
+
+        proveedores =
+            await ProveedorService.GetProveedores()
+            ?? new();
+    }
+
+    private async Task SeleccionarImagen(
+        InputFileChangeEventArgs e)
+    {
+        imagenSeleccionada = e.File;
+
+        using var stream =
+            imagenSeleccionada.OpenReadStream(
+                5 * 1024 * 1024);
+
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        previsualizacion =
+            $"data:{imagenSeleccionada.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+    }
+
+    private async Task CargarProductos()
+    {
+        var respuesta =
+            await ProductoService.GetProductosPaginados(
+                new ParametrosPaginacionDto());
+
+        productos =
+            respuesta?.Datos.ToList()
+            ?? new();
+    }
+
+    private async Task GuardarProducto()
+    {
+        bool resultado = false;
+
+        if (productoEditandoId.HasValue)
+        {
+            resultado =
+                await ProductoService
+                    .ActualizarProducto(
+                        productoEditandoId.Value,
+                        nuevoProducto);
+
+            if (resultado)
+            {
+                mensaje =
+                    "Producto actualizado correctamente.";
+            }
+            else
+            {
+                mensaje =
+                    "No se pudo actualizar el producto.";
+            }
+        }
+        else
+        {
+            var creado =
+                await ProductoService
+                    .CrearProducto(
+                        nuevoProducto);
+
+            if (creado != null)
+            {
+                resultado = true;
+
+                if (imagenSeleccionada != null)
+                {
+                    await ProductoService
+                        .SubirImagen(
+                            creado.Id,
+                            imagenSeleccionada);
+                }
+
+                mensaje =
+                    "Producto creado correctamente.";
+            }
+            else
+            {
+                mensaje =
+                    "No se pudo crear el producto.";
+            }
+        }
+
+        if (resultado)
+        {
+            await CargarProductos();
+
+            productoEditandoId = null;
+
+            nuevoProducto =
+                new CrearProductoDto();
+
+            imagenSeleccionada = null;
+
+            previsualizacion = null;
+        }
+    }
+
+    private void Editar(
+        ProductoDto producto)
+    {
+        productoEditandoId =
+            producto.Id;
+
+        nuevoProducto =
+            new CrearProductoDto
+            {
+                Nombre = producto.Nombre,
+                Stock = producto.Stock,
+                Precio = producto.Precio,
+                CategoriaId = producto.CategoriaId,
+                ProveedorId = producto.ProveedorId
+            };
+    }
+
+    private void CancelarEdicion()
+    {
+        productoEditandoId = null;
+
+        nuevoProducto =
+            new CrearProductoDto();
+
+        imagenSeleccionada = null;
+
+        previsualizacion = null;
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado =
+                await ProductoService
+                    .EliminarProducto(id);
+
+            if (!resultado)
+            {
+                mensaje =
+                    "No se puede eliminar el producto porque posee movimientos asociados.";
+            }
+
+            await CargarProductos();
+        }
+        catch (Exception ex)
+        {
+            mensaje =
+                $"Error al eliminar: {ex.Message}";
+        }
+    }
+}
